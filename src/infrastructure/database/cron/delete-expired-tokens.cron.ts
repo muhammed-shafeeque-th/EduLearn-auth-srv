@@ -1,7 +1,11 @@
 import cron from 'node-cron';
-import RefreshTokenRepositoryImpl from '../database/repositories/refresh-token.repository';
+import { container } from '@/infrastructure/di/container';
+import { TYPES } from '@/shared/constants/identifiers';
+import { IRefreshTokenRepository } from '@/domain/repository/refresh-token.repository';
 
-const refreshTokenRepository = new RefreshTokenRepositoryImpl();
+const refreshTokenRepository = container.get<IRefreshTokenRepository>(
+  TYPES.IRefreshTokenRepository,
+);
 
 // Schedule the cron job to run every day at midnight
 cron.schedule('0 0 * * *', async () => {
