@@ -1,4 +1,4 @@
-import ChangePasswordDto from '@/application/dto/user/change-password.dto';
+import ChangePasswordDto from '@/application/dtos/change-password.dto';
 
 /**
  * Interface representing the use case to fetch all users logged into

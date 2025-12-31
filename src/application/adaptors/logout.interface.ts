@@ -1,4 +1,4 @@
-import LogoutUserDto from '@/application/dto/auth/logout.dto';
+import LogoutUserDto from '@/application/dtos/logout.dto';
 
 export default interface ILogoutUserUseCase {
   /**

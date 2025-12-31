@@ -1,5 +1,5 @@
-import RegisterUserDto from '@/application/dto/auth/register-user.dto';
-import { IUser } from '@/domain/interfaces/user';
+import RegisterUserDto from '@/application/dtos/register-user.dto';
+import User from '@/domain/entity/user';
 
 export default interface IRegisterUserUseCase {
   /**
@@ -7,5 +7,5 @@ export default interface IRegisterUserUseCase {
    * @param dto - User data transferred from client
    * @returns A promise that resolve to the created user data
    */
-  execute(dto: RegisterUserDto): Promise<IUser>;
+  execute(dto: RegisterUserDto): Promise<User>;
 }
