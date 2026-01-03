@@ -1,6 +1,6 @@
+import { LoggingService } from '@/infrastructure/observability/logging/logging.service';
 import * as grpc from '@grpc/grpc-js';
 import * as protoLoader from '@grpc/proto-loader';
-import { GrpcController } from '@mdshafeeq-repo/edulearn-common';
 
 interface GrpcServerConfig {
   protoPath: string;
@@ -21,10 +21,11 @@ interface GrpcServerConfig {
   maxSendMessageLength?: number;
 }
 
-export class GrpcServer<T extends GrpcController> {
+export class GrpcServer<T extends grpc.UntypedServiceImplementation> {
   private server: grpc.Server;
   private proto: any;
   private config: GrpcServerConfig;
+  private logger = LoggingService.getInstance();
 
   public constructor(config: GrpcServerConfig, controllers: T) {
     this.config = {
@@ -131,10 +132,10 @@ export class GrpcServer<T extends GrpcController> {
     const address = `${this.config.host}:${this.config.port}`;
     this.server.bindAsync(address, grpc.ServerCredentials.createInsecure(), (err: Error | null) => {
       if (err) {
-        console.error(`Failed to bind gRPC server on ${address} :(`, err);
+        this.logger.error(`Failed to bind gRPC server on ${address} `, { err });
         process.exit(1);
       }
-      console.log('rRPC server started on ' + address + ' (:)');
+      this.logger.info('rRPC server started on ' + address);
     });
 
     process.on('SIGTERM', () => this.shutdown());
@@ -145,10 +146,10 @@ export class GrpcServer<T extends GrpcController> {
     return new Promise((resolve, reject) => {
       this.server.tryShutdown((err) => {
         if (err) {
-          console.error('Failed to shutdown rRPC server :(' + err);
+          this.logger.error('Failed to shutdown rRPC server ', { err });
           reject(err);
         } else {
-          console.log(`gRPC server shutdown successfully (:)`);
+          this.logger.info(`gRPC server shutdown successfully`);
           resolve();
         }
       });
