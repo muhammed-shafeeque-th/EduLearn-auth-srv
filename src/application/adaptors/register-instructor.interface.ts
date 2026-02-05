@@ -1,6 +1,6 @@
 import RegisterInstructorEventDto from '../dtos/register-instructor-event.dto';
 
-export default interface IRegisterInstructorUseCase {
+export default interface IRegisteredInstructorUseCase {
   /**
    * Login user with user credentials
    * @param dto User credentials transferred from client
