@@ -1,4 +1,4 @@
-import UserUpdateDto from '../dtos/user-update.dto';
+import UserUpdateDto from '../dtos/user-update.event-dto';
 
 export default interface IUpdateUserUseCase {
   /**

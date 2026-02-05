@@ -10,5 +10,5 @@ export interface IForgotPasswordUseCase {
    * @param email email of the User
    * @returns A Promise resolve to  an Object containing `userId`
    */
-  execute(dto: ForgotPasswordDto): Promise<{ user: User; link: string }>;
+  execute(dto: ForgotPasswordDto, idempotencyKey: string): Promise<{ user: User; link: string }>;
 }
