@@ -1,17 +1,12 @@
-import { ErrorCodes, ErrorStatusCodes } from '@mdshafeeq-repo/edulearn-common';
-import { GrpcError } from './grpc.error';
+import { ErrorCodes } from './error-codes/error-codes';
+import { StatusCodes } from './error-codes/error-status-codes';
+import { BaseError } from './base-error';
 
-export default class EmailAlreadyExist extends GrpcError {
+export default class EmailAlreadyExist extends BaseError {
   errorCode: ErrorCodes.EMAIL_ALREADY_REGISTERED = ErrorCodes.EMAIL_ALREADY_REGISTERED;
-  public statusCode: ErrorStatusCodes = ErrorStatusCodes.EMAIL_ALREADY_REGISTERED;
+  public statusCode: StatusCodes = StatusCodes.EMAIL_ALREADY_REGISTERED;
   constructor(message?: string) {
     super(message || 'user already exist with given email');
-
-    Object.setPrototypeOf(this, new.target.prototype);
-
-    if (Error.captureStackTrace) {
-      Error.captureStackTrace(this, this.constructor);
-    }
   }
 
   serializeErrors(): { message: string; field?: string }[] {
