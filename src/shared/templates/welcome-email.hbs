@@ -1,0 +1,458 @@
+<!-- templates/emails/welcome-email.hbs -->
+
+<html lang='en'>
+  <head>
+    <meta charset='UTF-8' />
+    <meta name='viewport' content='width=device-width, initial-scale=1.0' />
+    <title>Welcome to EduLearn - Start Your Learning Journey</title>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      body {
+        font-family:
+          -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+        line-height: 1.6;
+        color: #1a202c;
+        background-color: #f7fafc;
+      }
+      .container {
+        max-width: 600px;
+        margin: 0 auto;
+        background-color: #ffffff;
+      }
+      .header {
+        background: linear-gradient(135deg, #4299e1 0%, #667eea 50%, #9333ea 100%);
+        padding: 50px 20px;
+        text-align: center;
+        color: #ffffff;
+        position: relative;
+      }
+      .header-icon {
+        font-size: 64px;
+        margin-bottom: 15px;
+        display: block;
+      }
+      .header h1 {
+        font-size: 32px;
+        margin-bottom: 10px;
+        font-weight: 700;
+        letter-spacing: -0.5px;
+      }
+      .header p {
+        font-size: 18px;
+        opacity: 0.95;
+        font-weight: 400;
+      }
+      .content {
+        padding: 45px 35px;
+      }
+      .greeting {
+        font-size: 22px;
+        color: #2d3748;
+        margin-bottom: 20px;
+        font-weight: 600;
+      }
+      .message {
+        font-size: 16px;
+        color: #4a5568;
+        margin-bottom: 25px;
+        line-height: 1.8;
+      }
+      .highlight-box {
+        background: linear-gradient(135deg, #ebf4ff 0%, #e9d8fd 100%);
+        border-left: 4px solid #667eea;
+        padding: 20px;
+        border-radius: 8px;
+        margin: 30px 0;
+      }
+      .highlight-box p {
+        color: #2d3748;
+        font-size: 16px;
+        font-weight: 500;
+        margin: 0;
+      }
+      .cta-button {
+        display: inline-block;
+        background: linear-gradient(135deg, #4299e1 0%, #667eea 100%);
+        color: #ffffff;
+        text-decoration: none;
+        padding: 16px 40px;
+        border-radius: 8px;
+        font-weight: 600;
+        font-size: 16px;
+        margin: 25px 0;
+        transition: all 0.3s ease;
+        box-shadow: 0 4px 15px rgba(66, 153, 225, 0.3);
+      }
+      .cta-button:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 20px rgba(66, 153, 225, 0.4);
+      }
+      .features {
+        margin: 35px 0;
+      }
+      .features h3 {
+        color: #2d3748;
+        font-size: 20px;
+        margin-bottom: 20px;
+        font-weight: 600;
+        text-align: center;
+      }
+      .feature-grid {
+        display: table;
+        width: 100%;
+        margin-top: 20px;
+      }
+      .feature-card {
+        background-color: #f7fafc;
+        padding: 20px;
+        border-radius: 8px;
+        margin-bottom: 15px;
+        border-left: 3px solid #4299e1;
+        transition: all 0.3s ease;
+      }
+      .feature-card:hover {
+        background-color: #edf2f7;
+        transform: translateX(5px);
+      }
+      .feature-icon {
+        font-size: 28px;
+        margin-bottom: 8px;
+        display: block;
+      }
+      .feature-title {
+        font-size: 16px;
+        font-weight: 600;
+        color: #2d3748;
+        margin-bottom: 5px;
+      }
+      .feature-desc {
+        font-size: 14px;
+        color: #718096;
+        line-height: 1.5;
+      }
+      .quick-start {
+        background-color: #edf2f7;
+        padding: 25px;
+        border-radius: 8px;
+        margin: 30px 0;
+      }
+      .quick-start h4 {
+        color: #2d3748;
+        margin-bottom: 15px;
+        font-size: 18px;
+        font-weight: 600;
+      }
+      .quick-start-item {
+        margin: 12px 0;
+        padding-left: 30px;
+        position: relative;
+        color: #4a5568;
+        font-size: 15px;
+      }
+      .quick-start-item:before {
+        content: '';
+        position: absolute;
+        left: 0;
+        top: 6px;
+        width: 20px;
+        height: 20px;
+        background: linear-gradient(135deg, #4299e1 0%, #667eea 100%);
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      .quick-start-item:after {
+        content: '→';
+        position: absolute;
+        left: 5px;
+        top: 5px;
+        color: white;
+        font-weight: bold;
+        font-size: 12px;
+      }
+      .divider {
+        height: 2px;
+        background: linear-gradient(90deg, transparent, #e2e8f0, transparent);
+        margin: 35px 0;
+      }
+      .support-section {
+        background: linear-gradient(135deg, #f0f9ff 0%, #faf5ff 100%);
+        padding: 25px;
+        border-radius: 8px;
+        margin: 30px 0;
+        text-align: center;
+      }
+      .support-section h4 {
+        color: #2d3748;
+        margin-bottom: 12px;
+        font-size: 18px;
+        font-weight: 600;
+      }
+      .support-section p {
+        color: #4a5568;
+        font-size: 15px;
+        margin: 8px 0;
+      }
+      .support-section a {
+        color: #4299e1;
+        text-decoration: none;
+        font-weight: 600;
+      }
+      .stats-box {
+        background: white;
+        border: 2px solid #e2e8f0;
+        border-radius: 8px;
+        padding: 20px;
+        margin: 25px 0;
+        text-align: center;
+      }
+      .stats-box .stat-item {
+        display: inline-block;
+        margin: 0 15px;
+        padding: 10px;
+      }
+      .stat-number {
+        font-size: 24px;
+        font-weight: 700;
+        color: #667eea;
+        display: block;
+      }
+      .stat-label {
+        font-size: 13px;
+        color: #718096;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+      }
+      .footer {
+        background-color: #2d3748;
+        color: #cbd5e0;
+        padding: 35px 25px;
+        text-align: center;
+        font-size: 13px;
+      }
+      .footer p {
+        margin: 8px 0;
+      }
+      .footer a {
+        color: #a0aec0;
+        text-decoration: none;
+        transition: color 0.2s;
+      }
+      .footer a:hover {
+        color: #e2e8f0;
+      }
+      .social-links {
+        margin: 20px 0;
+      }
+      .social-links a {
+        display: inline-block;
+        margin: 0 12px;
+        color: #a0aec0;
+        text-decoration: none;
+        font-weight: 500;
+      }
+      @media only screen and (max-width: 600px) {
+        .content {
+          padding: 35px 25px;
+        }
+        .header h1 {
+          font-size: 26px;
+        }
+        .header p {
+          font-size: 16px;
+        }
+        .greeting {
+          font-size: 20px;
+        }
+        .message {
+          font-size: 15px;
+        }
+        .feature-grid {
+          display: block;
+        }
+        .stats-box .stat-item {
+          display: block;
+          margin: 10px 0;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class='container'>
+      <!-- Header -->
+      <div class='header'>
+        <span class='header-icon'>🎓</span>
+        <h1>Welcome to EduLearn!</h1>
+        <p>Your Learning Journey Begins Here</p>
+      </div>
+
+      <!-- Content -->
+      <div class='content'>
+        <p class='greeting'>Hello {{capitalize userName}}! 👋</p>
+
+        <p class='message'>
+          Congratulations! Your account has been successfully verified, and you're now part of the
+          <strong>EduLearn</strong>
+          community. We're thrilled to have you join thousands of learners who are transforming
+          their careers and achieving their educational goals.
+        </p>
+
+        <div class='highlight-box'>
+          <p>
+            🎉 Your account is
+            <strong>verified and ready</strong>! You now have full access to our entire learning
+            platform.
+          </p>
+        </div>
+
+        <center>
+          <a href='{{dashboardUrl}}' class='cta-button'>Explore Your Dashboard</a>
+        </center>
+
+        <!-- Platform Stats -->
+        <div class='stats-box'>
+          <div class='stat-item'>
+            <span class='stat-number'>5,000+</span>
+            <span class='stat-label'>Courses</span>
+          </div>
+          <div class='stat-item'>
+            <span class='stat-number'>100K+</span>
+            <span class='stat-label'>Students</span>
+          </div>
+          <div class='stat-item'>
+            <span class='stat-number'>500+</span>
+            <span class='stat-label'>Instructors</span>
+          </div>
+        </div>
+
+        <!-- Features Section -->
+        <div class='features'>
+          <h3>🚀 What You Can Do on EduLearn</h3>
+
+          <div class='feature-card'>
+            <span class='feature-icon'>📚</span>
+            <div class='feature-title'>Browse Extensive Course Library</div>
+            <div class='feature-desc'>
+              Access thousands of courses across technology, business, design, and more. Learn at
+              your own pace with lifetime access.
+            </div>
+          </div>
+
+          <div class='feature-card'>
+            <span class='feature-icon'>🎯</span>
+            <div class='feature-title'>Personalized Learning Paths</div>
+            <div class='feature-desc'>
+              Get course recommendations tailored to your interests and career goals. Track your
+              progress with interactive dashboards.
+            </div>
+          </div>
+
+          <div class='feature-card'>
+            <span class='feature-icon'>🏆</span>
+            <div class='feature-title'>Earn Certificates & Achievements</div>
+            <div class='feature-desc'>
+              Complete courses to earn verified certificates. Build your portfolio and showcase your
+              skills to employers.
+            </div>
+          </div>
+
+          <div class='feature-card'>
+            <span class='feature-icon'>👥</span>
+            <div class='feature-title'>Join Learning Communities</div>
+            <div class='feature-desc'>
+              Connect with fellow learners, participate in discussions, and collaborate on projects
+              in our vibrant community.
+            </div>
+          </div>
+        </div>
+
+        <div class='divider'></div>
+
+        <!-- Quick Start Guide -->
+        <div class='quick-start'>
+          <h4>🎯 Quick Start Guide</h4>
+          <div class='quick-start-item'>Complete your profile and set your learning goals</div>
+          <div class='quick-start-item'>Browse our course catalog and enroll in your first course</div>
+          <div class='quick-start-item'>Download the EduLearn mobile app for learning on-the-go</div>
+          <div class='quick-start-item'>Join our community forums and introduce yourself</div>
+          <div class='quick-start-item'>Check out our free courses to get started immediately</div>
+        </div>
+
+        <!-- Support Section -->
+        <div class='support-section'>
+          <h4>💬 Need Help Getting Started?</h4>
+          <p>Our support team is here to assist you 24/7.</p>
+          <p>
+            📧 Email:
+            <a href='mailto:{{supportEmail}}'>{{supportEmail}}</a>
+          </p>
+          <p>
+            📖 Visit our
+            <a href='{{helpCenterUrl}}'>Help Center</a>
+            for FAQs and tutorials
+          </p>
+          <p>
+            💡 Check out our
+            <a href='{{blogUrl}}'>Learning Blog</a>
+            for tips and study strategies
+          </p>
+        </div>
+
+        <p class='message'>
+          We're excited to be part of your educational journey. Whether you're learning a new skill,
+          advancing your career, or pursuing a passion, EduLearn is here to support you every step
+          of the way.
+        </p>
+
+        <p class='message'>
+          Ready to start learning?<br />
+          <strong>The EduLearn Team</strong>
+          🚀
+        </p>
+      </div>
+
+      <!-- Footer -->
+      <div class='footer'>
+        <p><strong>EduLearn - Empowering Learners Worldwide</strong></p>
+        <p>{{companyAddress}}</p>
+
+        <div class='social-links'>
+          {{#if socialLinks.twitter}}
+            <a href='{{socialLinks.twitter}}'>Twitter</a>
+          {{/if}}
+          {{#if socialLinks.facebook}}
+            <a href='{{socialLinks.facebook}}'>Facebook</a>
+          {{/if}}
+          {{#if socialLinks.linkedin}}
+            <a href='{{socialLinks.linkedin}}'>LinkedIn</a>
+          {{/if}}
+          {{#if socialLinks.instagram}}
+            <a href='{{socialLinks.instagram}}'>Instagram</a>
+          {{/if}}
+          {{#if socialLinks.youtube}}
+            <a href='{{socialLinks.youtube}}'>YouTube</a>
+          {{/if}}
+        </div>
+
+        <p>© {{currentYear}} EduLearn. All rights reserved.</p>
+        <p>
+          <a href='{{unsubscribeUrl}}'>Unsubscribe</a>
+          •
+          <a href='{{privacyPolicyUrl}}'>Privacy Policy</a>
+          •
+          <a href='{{termsUrl}}'>Terms of Service</a>
+        </p>
+        <p style='margin-top: 15px; font-size: 11px; color: #718096;'>
+          This email was sent to
+          {{email}}
+          because you registered for an EduLearn account.
+        </p>
+      </div>
+    </div>
+  </body>
+</html>
