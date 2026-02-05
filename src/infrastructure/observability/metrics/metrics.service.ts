@@ -19,7 +19,7 @@ export class MetricsService {
       name: 'course_service_grpc_request_duration_seconds',
       help: 'Latency of gRPC requests in seconds',
       labelNames: ['method', 'status_code'],
-      buckets: [0.005, 0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1, 2.5, 5, 10], // More granular buckets
+      buckets: [0.005, 0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1, 2.5, 5, 10],
     });
 
     this.databaseQueryCounter = new Counter({
@@ -52,7 +52,7 @@ export class MetricsService {
       labelNames: ['method', 'status_code'],
     });
   }
-  // Use the pre-defined metric instances directly
+
   public measureDBOperationDuration(
     method: string,
     operation?: 'INSERT' | 'DELETE' | 'SELECT' | 'UPDATE',
@@ -65,7 +65,7 @@ export class MetricsService {
   public measureRequestDuration(method: string): () => void {
     const end = this.gRPCRequestDurationSeconds.startTimer({ method });
     return (status_code?: string) => {
-      end({ status_code }); // Ensure status code is a string label
+      end({ status_code });
     };
   }
 
@@ -83,7 +83,6 @@ export class MetricsService {
     this.grpcErrorsTotal.inc({ method, status_code: statusCode?.toString() });
   }
 
-  // Expose metrics for Prometheus to scrape
   public async getMetrics(): Promise<string> {
     try {
       return register.metrics();
