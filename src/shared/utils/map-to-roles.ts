@@ -6,8 +6,8 @@ export const mapToRoles = (role: string) => {
       return UserRoles.ADMIN;
     case UserRoles.INSTRUCTOR:
       return UserRoles.INSTRUCTOR;
-    case UserRoles.USER:
-      return UserRoles.USER;
+    case UserRoles.STUDENT:
+      return UserRoles.STUDENT;
     default:
       throw Error('Invalid user role');
   }

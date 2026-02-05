@@ -1,5 +1,5 @@
 import { Metadata, sendUnaryData, ServerWritableStream, ServiceError, status } from '@grpc/grpc-js';
-import { BaseError } from '@mdshafeeq-repo/edulearn-common';
+import { BaseError } from '../errors/base-error';
 
 const mapHttpStatusToGrpcStatus = (httpStatus: number): number => {
   const statusMap: { [key: number]: number } = {
