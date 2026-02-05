@@ -1,54 +1,63 @@
-import { logger } from './setup'; // Correct import path
-import { context, trace } from '@opentelemetry/api'; // Import OpenTelemetry context API
+import { context, trace } from '@opentelemetry/api';
+import { logger, shutdownLogger } from './setup';
+import { getEnvs } from '@/shared/utils/getEnv';
 
-// Define a more robust LogContext interface
+const { SERVICE_NAME, NODE_ENV } = getEnvs({
+  SERVICE_NAME: 'UserService',
+  NODE_ENV: 'development',
+});
+
 interface LogContext {
-  traceId?: string; // OpenTelemetry Trace ID
-  spanId?: string; // OpenTelemetry Span ID
-  userId?: string; // Logged-in user ID
-  correlationId?: string; // General correlation ID if different from traceId
+  traceId?: string;
+  spanId?: string;
+  userId?: string;
+  correlationId?: string;
   service?: string;
   environment?: string;
-  // Allows arbitrary additional context properties
+  ctx?: string;
+
   [key: string]: unknown;
 }
 
 export class LoggingService {
   private readonly serviceName: string;
+  private readonly ctx?: string;
   public static instance: LoggingService;
 
-  public constructor(serviceName: string) {
-    // Service name is mandatory
+  private constructor(context?: string) {
+    this.serviceName = SERVICE_NAME.toString();
+    this.ctx = context;
+  }
+
+  public static getInstance(context?: string): LoggingService {
     if (!LoggingService.instance) {
-      this.serviceName = serviceName;
-      LoggingService.instance = this;
+      LoggingService.instance = new LoggingService(context);
     }
     return LoggingService.instance;
   }
 
-  // Private helper to build common log entry structure
   private buildLogEntry(level: string, message: string, logContext?: LogContext) {
-    // Get current active OpenTelemetry span context for correlation
     const activeSpan = trace.getSpan(context.active());
     const spanContext = activeSpan?.spanContext();
 
     return {
+      ...logContext,
       level,
       message,
-      // Prioritize traceId/spanId from active OpenTelemetry context
+
       traceId: spanContext?.traceId,
       spanId: spanContext?.spanId,
-      // Fallback to context provided if not from active span
+
       userId: logContext?.userId,
       correlationId: logContext?.correlationId,
       service: logContext?.service || this.serviceName,
-      environment: process.env.NODE_ENV || 'development',
-      // Include any other custom context provided directly
-      ...logContext,
+      environment: NODE_ENV.toString(),
+      caller: NODE_ENV.toString() !== 'production' ? this.getCaller() + ' ' : undefined,
+
+      ctx: this.ctx,
     };
   }
 
-  // Use winston's logger directly with metadata object
   info(message: string, context?: LogContext): void {
     const logEntry = this.buildLogEntry('info', message, context);
     logger.info(message, logEntry);
@@ -60,7 +69,6 @@ export class LoggingService {
   }
 
   warn(message: string, context?: LogContext): void {
-    // Renamed from warning to warn for consistency with Winston
     const logEntry = this.buildLogEntry('warn', message, context);
     logger.warn(message, logEntry);
   }
@@ -68,5 +76,27 @@ export class LoggingService {
   debug(message: string, context?: LogContext): void {
     const logEntry = this.buildLogEntry('debug', message, context);
     logger.debug(message, logEntry);
+  }
+
+  async shutdown(): Promise<void> {
+    await shutdownLogger();
+  }
+
+  private getCaller(): string | undefined {
+    const stack = new Error().stack;
+    if (!stack) return undefined;
+    const stackLines = stack.split('\n').map((line) => line.trim());
+
+    for (const line of stackLines) {
+      if (
+        line &&
+        !line.includes('logging.service.ts') &&
+        (line.startsWith('at ') || line.match(/\(([^)]+)\)/))
+      ) {
+        const match = line.match(/\(([^)]+)\)/) || line.match(/at (.+)/);
+        return match ? match[1] : undefined;
+      }
+    }
+    return undefined;
   }
 }
