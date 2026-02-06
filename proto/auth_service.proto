@@ -1,0 +1,288 @@
+syntax = "proto3";
+
+package auth_service;
+
+import "google/protobuf/timestamp.proto";
+
+// --- Common Types ---
+
+// Common User Information for both users and admins
+message AuthUserInfo {
+  string userId = 1;
+  string username = 2;
+  string email = 3;
+  string avatar  = 4;
+  string status = 5;
+  string role = 6;
+  google.protobuf.Timestamp updatedAt = 7;
+  google.protobuf.Timestamp createdAt = 8;
+}
+
+// Pagination
+message PaginationRequest {
+  int32 page = 1;
+  int32 pageSize = 2;
+}
+message PaginationResponse {
+  int32 totalItems = 1;
+  int32 totalPages = 2;
+}
+
+// Generic Error Structure
+message Error {
+  string code = 1; // e.g., "RESOURCE_NOT_FOUND", "INVALID_ARGUMENT", "UNAUTHENTICATED"
+  string message = 2;
+  repeated ErrorDetail details = 3;
+}
+message ErrorDetail {
+  optional string field = 1;
+  string message = 2;
+}
+
+// --- Main Service ---
+
+service AuthService {
+  // User endpoints
+  rpc RegisterUser(RegisterUserRequest) returns (RegisterUserResponse);
+  rpc Auth2Sign(Auth2SignRequest) returns (Auth2SignResponse);
+  rpc VerifyUser(VerifyUserRequest) returns (VerifyUserResponse);
+  rpc LoginUser(LoginUserRequest) returns (LoginUserResponse);
+  rpc LogoutUser(LogoutUserRequest) returns (LogoutUserResponse);
+  rpc RefreshToken(RefreshTokenRequest) returns (RefreshTokenResponse);
+  rpc ForgotPassword(ForgotPasswordRequest) returns (ForgotPasswordResponse);
+  rpc ChangePassword(ChangePasswordRequest) returns (ChangePasswordResponse);
+  rpc ResetPassword(ResetPasswordRequest) returns (ResetPasswordResponse);
+  rpc BlockUser(BlockUserRequest) returns (BlockUserResponse);
+  rpc UnBlockUser(UnBlockUserRequest) returns (UnBlockUserResponse);
+
+  // --- New: Admin Auth Endpoints ---
+  rpc AdminLogin(AdminLoginRequest) returns (AdminLoginResponse);
+  rpc AdminRefresh(AdminRefreshRequest) returns (AdminRefreshResponse);
+}
+
+// --- Request and Response Messages ---
+
+// Register User
+message RegisterUserRequest {
+  string firstName = 1;
+  string lastName = 7;
+  string email = 2;
+  string password = 3;
+  string role = 4;
+  string avatar = 5;
+  string authType = 6; // e.g., "password", "google", "facebook"
+}
+message RegisterUserResponse {
+  oneof result {
+    string userId = 1;
+    Error error = 2;
+  }
+}
+
+// OAuth2 Sign
+message Auth2SignRequest {
+  string token = 1;
+  string provider = 2;
+  string authType = 3;
+}
+message Auth2SignResponse {
+  oneof result {
+    AuthUserResponse success = 1;
+    Error error = 2;
+  }
+}
+
+// User Login/Logout
+message LoginUserRequest {
+  string email = 1;
+  string password = 2;
+  bool rememberMe = 3;
+}
+message LoginUserResponse {
+  oneof result {
+    AuthUserResponse success = 1;
+    Error error = 2;
+  }
+}
+message LogoutUserRequest {
+  string userId = 1;
+}
+message LogoutResponse {
+  string userId = 1;
+  string message = 2;
+}
+message LogoutUserResponse {
+  oneof result {
+    LogoutResponse success = 1;
+    Error error = 2;
+  }
+}
+
+// User Verification
+message VerifyUserRequest {
+  string email = 1;
+}
+message VerifyUserResponse {
+  oneof result {
+    AuthUserResponse success = 1;
+    Error error = 2;
+  }
+}
+
+// AuthUser/Instructor Responses
+message AuthUserResponse {
+  string accessToken = 1;
+  string refreshToken = 2;
+}
+message InstructorSuccessResponse {
+  string accessToken = 1;
+  string refreshToken = 2;
+}
+message RegisterInstructorRequest {
+  string userId = 1;
+}
+message RegisterInstructorResponse {
+  oneof result {
+    Error error = 1;
+    InstructorSuccessResponse success = 2;
+  } 
+}
+
+// Token Refresh
+message RefreshTokenRequest {
+  string refreshToken = 1;
+}
+message RefreshTokenResponse {
+  oneof result {
+    RefreshSuccess success = 1;
+    Error error = 2;
+  }
+}
+message RefreshSuccess {
+  string accessToken = 1;
+  string refreshToken = 2;
+}
+
+// --- Admin-specific Auth Flows ---
+
+// Admin Login
+message AdminLoginRequest {
+  string email = 1;
+  string password = 2;
+}
+message AdminLoginResponse {
+  oneof result {
+    AdminAuthSuccess success = 1;
+    Error error = 2;
+  }
+}
+message AdminAuthSuccess {
+  string accessToken = 1;
+  string refreshToken = 2;
+}
+
+// Admin Refresh Token
+message AdminRefreshRequest {
+  string refreshToken = 1;
+}
+message AdminRefreshResponse {
+  oneof result {
+    AdminRefreshSuccess success = 1;
+    Error error = 2;
+  }
+}
+message AdminRefreshSuccess {
+  string accessToken = 1;
+  string refreshToken = 2;
+}
+
+// Forgot Password
+message ForgotPasswordRequest {
+  string email = 1;
+}
+message ForgotPasswordResponse {
+  oneof result {
+    ForgotPasswordSuccess success = 1;
+    Error error = 2;
+  }
+}
+message ForgotPasswordSuccess {
+  string username = 1;
+  string userId = 5;
+  string email = 2;
+  string resetLink = 3;
+  // int32 expires = 4;
+}
+
+// Change Password
+message ChangePasswordRequest {
+  string userId = 1;
+  string oldPassword = 2;
+  string newPassword = 3;
+}
+message ChangePasswordResponse {
+  oneof result {
+    ChangePasswordSuccess success = 1;
+    Error error = 2;
+  }
+}
+message ChangePasswordSuccess {
+  bool updated = 1;
+}
+
+// Reset Password
+message ResetPasswordRequest {
+  string token = 1;
+  string password = 2;
+  string confirmPassword = 3;
+}
+message ResetPasswordResponse {
+  oneof result {
+    ResetPasswordSuccess success = 1;
+    Error error = 2;
+  }
+}
+message ResetPasswordSuccess {
+  bool updated = 1;
+}
+
+// Check Email Existence
+message CheckUserByEmailRequest {
+  string email = 1;
+}
+message EmailExist {
+  string success = 1;
+  string error = 2; 
+}
+message CheckUserByEmailResponse {
+  oneof result {
+    EmailExist response = 1;
+    Error error = 2;
+  }
+}
+
+// Block/Unblock User
+message BlockUserRequest {
+  string userId = 1;
+}
+message UnBlockUserRequest {
+  string userId = 1;
+}
+message BlockUserResponse {
+  oneof result {
+    BlockUserSuccess success = 1;
+    Error error = 2;
+  }
+}
+message UnBlockUserResponse {
+  oneof result {
+    UnBlockUserSuccess success = 1;
+    Error error = 2;
+  }
+}
+message BlockUserSuccess {
+  bool updated = 1;
+}
+message UnBlockUserSuccess {
+  bool updated = 1;
+}

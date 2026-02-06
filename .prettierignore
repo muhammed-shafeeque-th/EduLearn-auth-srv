@@ -1,4 +1,4 @@
-*.*
+# *.*
 !src/**/*
 src/infrastructure/frameworks/gRPC/generated/*
 protogen.sh

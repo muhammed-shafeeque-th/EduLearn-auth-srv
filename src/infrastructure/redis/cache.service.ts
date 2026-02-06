@@ -12,11 +12,6 @@ const { REDIS_DB, REDIS_HOST, REDIS_KEY_PREFIX, REDIS_PASSWORD, REDIS_PORT } = g
   REDIS_PASSWORD: '',
 });
 
-/**
- * RedisCacheService
- * Provides singleton-based interaction with Redis and implements caching best practices.
- * Supports JSON serializable values, metrics, batch operations, and transactional/misc. helpers.
- */
 export class RedisCacheService implements ICacheService {
   private static instance: RedisCacheService;
   private client: Redis;
@@ -54,9 +49,6 @@ export class RedisCacheService implements ICacheService {
     }
   }
 
-  /**
-   * Returns the singleton instance.
-   */
   public static getInstance(): RedisCacheService {
     if (!RedisCacheService.instance) {
       RedisCacheService.instance = new RedisCacheService();
@@ -64,16 +56,10 @@ export class RedisCacheService implements ICacheService {
     return RedisCacheService.instance;
   }
 
-  /**
-   * Retrieve the raw Redis client (ioredis).
-   */
   public getClient(): Redis {
     return this.client;
   }
 
-  /**
-   * Connect manually to Redis (for clients supporting explicit connect/disconnect)
-   */
   public async connect(): Promise<void> {
     try {
       // Only connect if in "disconnected" mode
@@ -87,9 +73,6 @@ export class RedisCacheService implements ICacheService {
     }
   }
 
-  /**
-   * Disconnect from Redis (gracefully)
-   */
   public async disconnect(): Promise<void> {
     try {
       if (this.client && this.client.status !== 'end') {
@@ -102,18 +85,12 @@ export class RedisCacheService implements ICacheService {
     }
   }
 
-  /**
-   * Ping Redis server and return duration in ms.
-   */
   public async ping(): Promise<number> {
     const start = Date.now();
     await this.client.ping();
     return Date.now() - start;
   }
 
-  /**
-   * Get value from cache. Returns null if key doesn't exist or on parse error.
-   */
   public async get<T>(key: string): Promise<T | null> {
     try {
       const value = await this.client.get(key);
@@ -136,12 +113,9 @@ export class RedisCacheService implements ICacheService {
     }
   }
 
-  /**
-   * Set value in cache. If ttl (in seconds) is provided, sets expiry.
-   */
   public async set<T>(key: string, value: T, ttl?: number): Promise<void> {
     try {
-      const stringValue = JSON.stringify(value);
+      const stringValue = typeof value !== 'string' ? JSON.stringify(value) : value;
       if (ttl) {
         await this.client.setex(key, ttl, stringValue);
       } else {
@@ -154,9 +128,6 @@ export class RedisCacheService implements ICacheService {
     }
   }
 
-  /**
-   * Deletes a key.
-   */
   public async delete(key: string): Promise<void> {
     try {
       await this.client.del(key);
@@ -167,9 +138,6 @@ export class RedisCacheService implements ICacheService {
     }
   }
 
-  /**
-   * Checks if a key exists (returns true if exists).
-   */
   public async exists(key: string): Promise<boolean> {
     try {
       const result = await this.client.exists(key);
@@ -181,9 +149,6 @@ export class RedisCacheService implements ICacheService {
     }
   }
 
-  /**
-   * Returns all keys matching a pattern (use with caution).
-   */
   public async keys(pattern: string): Promise<string[]> {
     try {
       return await this.client.keys(pattern);
@@ -194,9 +159,6 @@ export class RedisCacheService implements ICacheService {
     }
   }
 
-  /**
-   * Completely remove all keys from DB.
-   */
   public async flush(): Promise<void> {
     try {
       await this.client.flushdb();
@@ -208,9 +170,6 @@ export class RedisCacheService implements ICacheService {
     }
   }
 
-  /**
-   * Batch: Get multiple keys at once.
-   */
   public async getMultiple<T>(keys: string[]): Promise<(T | null)[]> {
     try {
       if (keys.length === 0) return [];
@@ -231,9 +190,6 @@ export class RedisCacheService implements ICacheService {
     }
   }
 
-  /**
-   * Batch: Set multiple items, optionally with TTL applied to all.
-   */
   public async setMultiple<T>(entries: { key: string; value: T }[], ttl?: number): Promise<void> {
     if (!Array.isArray(entries) || entries.length === 0) return;
     try {
@@ -281,9 +237,6 @@ export class RedisCacheService implements ICacheService {
     }
   }
 
-  /**
-   * Atomically increments a key (optionally creates with initial value/expiry).
-   */
   public async incrBy(key: string, amount: number = 1): Promise<number> {
     try {
       return await this.client.incrby(key, amount);
@@ -294,9 +247,6 @@ export class RedisCacheService implements ICacheService {
     }
   }
 
-  /**
-   * Atomically decrements a key.
-   */
   public async decrBy(key: string, amount: number = 1): Promise<number> {
     try {
       return await this.client.decrby(key, amount);
@@ -307,9 +257,6 @@ export class RedisCacheService implements ICacheService {
     }
   }
 
-  /**
-   * Fetches TTL for a key (in seconds). Returns -1 if no expiry, -2 if key doesn't exist.
-   */
   public async getTTL(key: string): Promise<number> {
     try {
       return await this.client.ttl(key);
@@ -320,9 +267,6 @@ export class RedisCacheService implements ICacheService {
     }
   }
 
-  /**
-   * Sets the expiry/TTL for a key, in seconds.
-   */
   public async expire(key: string, seconds: number): Promise<boolean> {
     try {
       const res = await this.client.expire(key, seconds);
@@ -334,9 +278,6 @@ export class RedisCacheService implements ICacheService {
     }
   }
 
-  /**
-   * Clear all keys matching a pattern with a pipeline (efficient batch deletion).
-   */
   public async deleteByPattern(pattern: string): Promise<number> {
     try {
       const keys = await this.keys(pattern);
@@ -355,9 +296,6 @@ export class RedisCacheService implements ICacheService {
     }
   }
 
-  /**
-   * Publishes a message to a Redis Pub/Sub channel
-   */
   public async publish(channel: string, message: string): Promise<number> {
     try {
       return await this.client.publish(channel, message);
@@ -368,9 +306,6 @@ export class RedisCacheService implements ICacheService {
     }
   }
 
-  /**
-   * Subscribes to messages on a channel. Returns unsubscribe function.
-   */
   public async subscribe(
     channel: string,
     onMessage: (channel: string, message: string) => void,
@@ -395,9 +330,6 @@ export class RedisCacheService implements ICacheService {
     };
   }
 
-  /**
-   * Provides basic metrics about operations and Redis state.
-   */
   public async getMetrics() {
     let memoryInfoStr = '';
     let statsInfoStr = '';

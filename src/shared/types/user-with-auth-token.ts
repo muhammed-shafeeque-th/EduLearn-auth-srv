@@ -1,6 +1,6 @@
-import { IUser } from '@/domain/interfaces/user';
 import { IAuthTokens } from './auth.tokens';
+import User from '@/domain/entity/user';
 
 export interface IUserWithAuthToken extends IAuthTokens {
-  user: IUser;
+  user: User;
 }

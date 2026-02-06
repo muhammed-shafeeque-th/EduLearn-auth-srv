@@ -1,8 +1,8 @@
-import { CustomJwtClaims } from '@/application/services/token.service';
 import User from '@/domain/entity/user';
 import ms from 'ms';
 import type { StringValue } from 'ms';
 import { getEnvs } from './getEnv';
+import { CustomJwtClaims } from '../types';
 const { JWT_REFRESH_TOKEN_LONG_EXPIRY, JWT_REFRESH_TOKEN_SHORT_EXPIRY } = getEnvs({
   JWT_REFRESH_TOKEN_LONG_EXPIRY: '7d',
   JWT_REFRESH_TOKEN_SHORT_EXPIRY: '1d',

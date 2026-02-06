@@ -14,6 +14,9 @@ RUN yarn install --frozen-lockfile
 COPY tsconfig*.json ./
 COPY src ./src
 
+# Copy proto files
+COPY proto ./proto
+
 # Build the TypeScript app
 RUN yarn run build
 
@@ -30,7 +33,10 @@ RUN addgroup -S appgroup && adduser -S appuser -G appgroup
 COPY --from=builder --chown=appuser:appgroup /app/dist ./dist
 COPY --from=builder --chown=appuser:appgroup /app/package.json ./package.json
 COPY --from=builder --chown=appuser:appgroup /app/yarn.lock ./yarn.lock
-COPY --from=builder --chown=appuser:appgroup /app/src/infrastructure/gRPC/protos ./dist/infrastructure/gRPC/protos
+# Copy proto files
+COPY --from=builder --chown=appuser:appgroup /app/proto ./proto
+# Copy template files (hbs)
+COPY --from=builder --chown=appuser:appgroup /app/src/shared/templates ./dist/shared/templates
 
 # Install only production dependencies
 RUN yarn install --production --frozen-lockfile

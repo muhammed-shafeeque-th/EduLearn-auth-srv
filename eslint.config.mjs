@@ -20,14 +20,14 @@ export default [
       'dist/',
       'coverage/',
       'src/infrastructure/frameworks/gRPC/generated/*',
-      'protogen.sh'
+      'protogen.sh',
     ],
   },
   ...compat.extends(
     'eslint:recommended',
     'plugin:@typescript-eslint/recommended',
     'plugin:prettier/recommended',
-    'eslint-config-prettier'
+    'eslint-config-prettier',
   ),
   {
     files: ['**/*.{ts,tsx}', '**/*.{ts,tsx}/**'],
@@ -37,11 +37,13 @@ export default [
     },
     rules: {
       '@typescript-eslint/explicit-function-return-type': 'warn',
+      '@typescript-eslint/no-duplicate-enum-values': 'warn',
       '@typescript-eslint/no-explicit-any': 'warn',
       '@typescript-eslint/no-unused-vars': ['error', { argsIgnorePattern: '^_' }],
       '@typescript-eslint/explicit-member-accessibility': ['warn'],
       '@typescript-eslint/no-non-null-assertion': 'off',
       'prettier/prettier': 'error',
+      'no-var': 'warn', // Added rule to warn against using var for variable declaration
     },
   },
 ];

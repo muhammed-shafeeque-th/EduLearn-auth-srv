@@ -1,10 +1,11 @@
 import { Metadata } from '@grpc/grpc-js';
+import { Context, context, propagation } from '@opentelemetry/api';
 
 export function parseMetadata<Response extends Record<string, any>>(
   metadata: Metadata,
   config: { [K in keyof Response]: { header: string; multi?: boolean } },
-): Partial<Response> {
-  const result = {} as Response;
+): { headers: Partial<Response>; extractedContext: Context } {
+  const headers = {} as Response;
 
   for (const [responseKey, { header, multi }] of Object.entries(config)) {
     const key = responseKey as keyof Response;
@@ -12,14 +13,16 @@ export function parseMetadata<Response extends Record<string, any>>(
     try {
       if (!values || values.length == 0 || values[0] === 'undefined') continue;
       else if (multi) {
-        result[key] = values.map((val) => JSON.parse(val.toString())) as Response[keyof Response];
+        headers[key] = values.map((val) => JSON.parse(val.toString())) as Response[keyof Response];
       } else {
-        result[key] = JSON.parse(values[0].toString());
+        headers[key] = JSON.parse(values[0].toString());
       }
     } catch (error) {
       console.error(error);
       // throw error;
     }
   }
-  return result;
+  const extractedContext = propagation.extract(context.active(), headers);
+
+  return { headers, extractedContext };
 }

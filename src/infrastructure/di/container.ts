@@ -1,67 +1,128 @@
 import { Container } from 'inversify';
-import PostgresUserRepositoryImpl from '../frameworks/database/repositories/user-repository';
+import PostgresUserRepositoryImpl from '../database/repositories/user-repository';
 import { TYPES } from '@/shared/constants/identifiers';
 import HashServiceImpl from '../services/hash.service';
 import UUIDServiceImpl from '../services/uuid.service';
-import UserController from '@/presentation/controllers/user.controller';
-import RefreshTokenRepositoryImpl from '../frameworks/database/repositories/refresh-token.repository';
+import RefreshTokenRepositoryImpl from '../database/repositories/refresh-token.repository';
 import TokenServiceImpl from '../services/token.service';
-import RegisterUserUseCaseImpl from '@/application/user-cases/auth/register-user.usecase';
-import LoginUserUseCaseImpl from '@/application/user-cases/auth/login-user.usecase';
-import { CacheServiceImpl } from '../services/cache.service';
-import CurrentUserUseCaseImpl from '@/application/user-cases/user/current-user.usecase';
-import VerifyUserUseCaseImpl from '@/application/user-cases/auth/verify-user.usecase';
-import Auth2SignUseCaseImpl from '@/application/user-cases/auth/auth2-sign.usecase';
-import LogoutUseCaseImpl from '@/application/user-cases/auth/logout.usecase';
-import GetAllUsersUseCaseImpl from '@/application/user-cases/user/get-all-users.usecase';
+import RegisterUserUseCaseImpl from '@/application/use-cases/register-user.usecase';
+import LoginUserUseCaseImpl from '@/application/use-cases/login-user.usecase';
+import VerifyUserUseCaseImpl from '@/application/use-cases/verify-user.usecase';
+import Auth2SignUseCaseImpl from '@/application/use-cases/auth2-sign.usecase';
+import LogoutUseCaseImpl from '@/application/use-cases/logout.usecase';
+
 import AuthController from '@/presentation/controllers/auth.controller';
-import NewRefreshTokenUseCaseImpl from '@/application/user-cases/auth/new-refresh-token.usecase';
-import GetAllEmailsUseCaseImpl from '@/application/user-cases/user/get-all-emails.use-case';
-import ChangePasswordUseCaseImpl from '@/application/user-cases/user/change-password.use-case';
-import UpdateUserUseCaseImpl from '@/application/user-cases/user/update-userdata.use-case';
-import BlockUserUserCaseImpl from '@/application/user-cases/user/block-user.use-case';
-import CheckEmailExistUseCaseImpl from '@/application/user-cases/user/email-exist.use-case';
-import UnBlockUserUserCaseImpl from '@/application/user-cases/user/unblock-user.use-case';
-import DetailedUserUseCaseImpl from '@/application/user-cases/user/get-detailed-user.use-case';
-import RegisterInstructorUseCaseImpl from '@/application/user-cases/user/register-instructor.usecase';
+import RefreshTokenUseCaseImpl from '@/application/use-cases/refresh-token.usecase';
+
+import { TracingService } from '../observability/tracing/trace.service';
+import { LoggingService } from '../observability/logging/logging.service';
+import { initializeTracer } from '../observability/tracing/setup';
+import { MetricsService } from '../observability/monitoring/monitoring.service';
+import { IRefreshTokenRepository } from '@/domain/repository/refresh-token.repository';
+import ChangePasswordUseCaseImpl from '@/application/use-cases/change-password.use-case';
+import ResetPasswordUseCaseImpl from '@/application/use-cases/reset-password.use-case';
+import ForgotPasswordUseCaseImpl from '@/application/use-cases/forgot-password.usecase';
+import { IPasswordResetTokenRepository } from '@/domain/repository/reset-token.repository';
+import PasswordResetRepositoryImpl from '../database/repositories/password-reset-token.repository';
+import { EventConsumerController } from '@/presentation/controllers/event.consumer.controller';
+import IEventPublisher from '@/application/services/event-publisher.service';
+import { EventPublisherService } from '../services/event-publisher.service';
+import { defaultConfig, KafkaManager } from '../kafka';
+import UpdateUserUseCaseImpl from '@/application/use-cases/update-user.use-case';
+import AuthProviderContextImpl from '../services/auth-provider-context';
+import RegisterInstructorUseCaseImpl from '@/application/use-cases/register-instructor.use-case';
+import { RedisCacheService } from '../redis/cache.service';
+import { HandlebarsTemplateRendererAdapter } from '../services/template-renderer';
+import UserUnblockedUseCaseImpl from '@/application/use-cases/user-unblocked.use-case';
+import UserBlockedUseCaseImpl from '@/application/use-cases/block-user.use-case';
+import AdminLoginUseCaseImpl from '@/application/use-cases/admin/admin-login.usecase';
+import AdminRefreshTokenUseCaseImpl from '@/application/use-cases/admin/admin-refresh.usecase';
+import { IIdempotencyRepository } from '@/domain/repository/idempotency.repository';
+import { RedisIdempotencyRepository } from '../redis/idempotency.repository';
 
 const container = new Container();
+initializeTracer();
 
 /**
  * Bind Interfaces to implementations
  */
 
+// Bind Kafka Manager
+container
+  .bind<KafkaManager>(TYPES.KafkaManager)
+  .toDynamicValue(() => {
+    return KafkaManager.getInstance(defaultConfig);
+  })
+  .inSingletonScope();
+
 //Bind repositories
 container.bind(TYPES.IUserRepository).to(PostgresUserRepositoryImpl).inSingletonScope();
-container.bind(TYPES.IRefreshTokenRepository).to(RefreshTokenRepositoryImpl).inSingletonScope();
+container
+  .bind<IRefreshTokenRepository>(TYPES.IRefreshTokenRepository)
+  .to(RefreshTokenRepositoryImpl)
+  .inSingletonScope();
+container
+  .bind<IPasswordResetTokenRepository>(TYPES.IResetTokenRepository)
+  .to(PasswordResetRepositoryImpl)
+  .inSingletonScope();
+container
+  .bind<IIdempotencyRepository>(TYPES.IIdempotencyRepository)
+  .to(RedisIdempotencyRepository)
+  .inSingletonScope();
 // container.bind<RedisCacheService>(TYPES.IRedisCacheService).toDynamicValue(() => RedisCacheService.getInstance());
 
 //Bind use cases
-container.bind(TYPES.IRegisterUserUseCase).to(RegisterUserUseCaseImpl);
+container.bind(TYPES.IRegisterUserUseCase).to(RegisterUserUseCaseImpl).inSingletonScope();
 container.bind(TYPES.ILoginUserUseCase).to(LoginUserUseCaseImpl);
 container.bind(TYPES.ILogoutUserUseCase).to(LogoutUseCaseImpl);
-container.bind(TYPES.ICurrentUserUseCase).to(CurrentUserUseCaseImpl);
+
 container.bind(TYPES.IVerifyUserUseCase).to(VerifyUserUseCaseImpl);
 container.bind(TYPES.IAuth2SignUseCase).to(Auth2SignUseCaseImpl);
-container.bind(TYPES.IGetAllUsersUseCase).to(GetAllUsersUseCaseImpl);
-container.bind(TYPES.INewRefreshTokenUseCase).to(NewRefreshTokenUseCaseImpl);
-container.bind(TYPES.IGetAllEmailsUseCase).to(GetAllEmailsUseCaseImpl);
+
 container.bind(TYPES.IChangePasswordUseCase).to(ChangePasswordUseCaseImpl);
+container.bind(TYPES.IUnBlockUserUseCase).to(UserUnblockedUseCaseImpl);
+container.bind(TYPES.IAdminLoginUseCase).to(AdminLoginUseCaseImpl);
+container.bind(TYPES.IAdminRefreshUseCase).to(AdminRefreshTokenUseCaseImpl);
+container.bind(TYPES.IBlockUserUseCase).to(UserBlockedUseCaseImpl);
+container.bind(TYPES.IResetPasswordUseCase).to(ResetPasswordUseCaseImpl);
+container.bind(TYPES.IForgotPasswordUseCase).to(ForgotPasswordUseCaseImpl);
 container.bind(TYPES.IUpdateUserUseCase).to(UpdateUserUseCaseImpl);
-container.bind(TYPES.IBlockUserUseCase).to(BlockUserUserCaseImpl);
-container.bind(TYPES.IUnBlockUserUseCase).to(UnBlockUserUserCaseImpl);
-container.bind(TYPES.IEmailExistUseCase).to(CheckEmailExistUseCaseImpl);
-container.bind(TYPES.IDetailedUserUseCase).to(DetailedUserUseCaseImpl);
 container.bind(TYPES.IRegisterInstructorUseCase).to(RegisterInstructorUseCaseImpl);
 
+container.bind(TYPES.IRefreshTokenUseCase).to(RefreshTokenUseCaseImpl);
+
+// Bind observability services
+container
+  .bind<TracingService>(TYPES.TracingService)
+  .toDynamicValue(() => {
+    return TracingService.getInstance();
+  })
+  .inSingletonScope();
+container
+  .bind<LoggingService>(TYPES.LoggingService)
+  .toDynamicValue(() => {
+    return LoggingService.getInstance();
+  })
+  .inSingletonScope();
+container.bind<MetricsService>(TYPES.MetricsService).to(MetricsService).inSingletonScope();
+
 //Bind services
-container.bind(TYPES.IHashService).to(HashServiceImpl);
-container.bind(TYPES.IUUIDService).to(UUIDServiceImpl);
-container.bind(TYPES.ITokenService).to(TokenServiceImpl);
-container.bind(TYPES.ICacheService).to(CacheServiceImpl);
+container.bind(TYPES.IHashService).to(HashServiceImpl).inSingletonScope();
+container.bind(TYPES.ITemplateRenderer).to(HandlebarsTemplateRendererAdapter).inSingletonScope();
+container.bind(TYPES.IUUIDService).to(UUIDServiceImpl).inSingletonScope();
+container.bind(TYPES.ITokenService).to(TokenServiceImpl).inSingletonScope();
+container
+  .bind(TYPES.ICacheService)
+  .toDynamicValue(() => RedisCacheService.getInstance())
+  .inSingletonScope();
+container.bind(TYPES.IAuthProviderContext).to(AuthProviderContextImpl).inSingletonScope();
+container
+  .bind<IEventPublisher>(TYPES.IEventPublisherService)
+  .to(EventPublisherService)
+  .inSingletonScope();
 
 //Bind controllers
-container.bind(TYPES.IUserServiceController).to(UserController);
-container.bind(TYPES.IAuthServiceController).to(AuthController);
+container.bind(TYPES.IAuthServiceController).to(AuthController).inSingletonScope();
+container.bind(TYPES.IEventConsumerController).to(EventConsumerController).inSingletonScope();
 
 export { container };

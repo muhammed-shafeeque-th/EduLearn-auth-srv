@@ -1,4 +1,4 @@
-import UserBlockedDto from '../dtos/user-blocked.dto';
+import UserBlockedDto from '../dtos/user-blocked.event-dto';
 
 /**
  * Interface for the UserBlocked use case.

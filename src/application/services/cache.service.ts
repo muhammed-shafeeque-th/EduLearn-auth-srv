@@ -1,3 +1,5 @@
+import Redis from "ioredis";
+
 /**
  * Interface representing a cache service for storing and retrieving data.
  */
@@ -89,4 +91,6 @@ export interface ICacheService {
    * @returns A promise that resolves to the TTL in seconds, -1 if no expiry, -2 if key does not exist.
    */
   getTTL(key: string): Promise<number>;
+
+  getClient(): Redis;
 }

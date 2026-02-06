@@ -1,19 +1,19 @@
 import winston, { format, transports } from 'winston';
 import LokiTransport from 'winston-loki';
 import DailyRotateFile from 'winston-daily-rotate-file';
-import { getEnvs } from '@mdshafeeq-repo/edulearn-common';
+import { getEnvs } from '@/shared/utils/getEnv';
 
-const { LOKI_URL, SERVICE_NAME, NODE_ENV, LOG_LEVEL } = getEnvs(
-  'LOKI_URL',
-  'SERVICE_NAME',
-  'NODE_ENV',
-  'LOG_LEVEL',
-);
+const { LOKI_URL, SERVICE_NAME, NODE_ENV, LOG_LEVEL } = getEnvs({
+  LOKI_URL: 'http://loki:3100',
+  SERVICE_NAME: 'auth-service ',
+  NODE_ENV: 'development',
+  LOG_LEVEL: 'info',
+});
 
 // Loki transport for sending logs to Loki
 const lokiTransport = new LokiTransport({
-  host: LOKI_URL || 'http://loki:3100',
-  labels: { app: SERVICE_NAME || 'default-service ' },
+  host: LOKI_URL.toString(),
+  labels: { app: SERVICE_NAME.toString() },
   json: true, // Send logs as JSON to loki
   batching: true,
   interval: 5000, // Batch logs every 5 seconds
@@ -43,7 +43,7 @@ const customConsoleFileFormat = format.combine(
 
 // Daily rotating file transport with compression
 const dailyRotateFileTransport = new DailyRotateFile({
-  filename: `logs/${SERVICE_NAME}-%DATE%-combined.log`, // Log file name pattern includes service name
+  filename: `logs/${SERVICE_NAME.toString()}-%DATE%-combined.log`, // Log file name pattern includes service name
   datePattern: 'YYYY-MM-DD', // Rotate daily
   zippedArchive: true, // Compress rotated files
   maxSize: '20m', // Rotate when file size exceeds 20 MB
@@ -59,13 +59,13 @@ const consoleTransport = new transports.Console({
 
 // Create the logger
 const logger = winston.createLogger({
-  level: LOG_LEVEL || 'info', // Use LOG_LEVEL from env
+  level: LOG_LEVEL.toString(), // Use LOG_LEVEL from env
   // In production, we want JSON for Loki. For console/file, human-readable is fine.
   // Winston allows different formats per transport.
   // The base format here is for the default behavior if no transport-specific format is set.
   // For Loki, we explicitly set json: true in its config.
   // For file, we explicitly set format.json() for consistency.
-  format: NODE_ENV === 'production' ? format.json() : customConsoleFileFormat,
+  format: NODE_ENV.toString() === 'production' ? format.json() : customConsoleFileFormat,
   transports: [
     consoleTransport, // Always keep console for immediate feedback
     dailyRotateFileTransport,
@@ -75,7 +75,7 @@ const logger = winston.createLogger({
 });
 
 // Graceful shutdown for transports (important for batching)
-const shutdownLogger = async () => {
+export const shutdownLogger = async () => {
   console.log('Flushing logs before shutdown...');
   // Allow time for batching transports to flush
   await new Promise((resolve) => setTimeout(resolve, 1000)); // Wait for batching to complete

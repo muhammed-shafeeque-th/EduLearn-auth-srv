@@ -23,7 +23,13 @@ export class ResponseMapper<Entity, Response> {
         response[key] = entityKeyOrTransform(entity);
       } else {
         // Direct mapping
-        const value = entity[entityKeyOrTransform as keyof Entity];
+        let value = entity[entityKeyOrTransform as keyof Entity];
+        if (value === undefined || value === null) {
+          if (typeof entityKeyOrTransform === 'string') {
+            const getterMethod = `get${entityKeyOrTransform[0].toUpperCase() + entityKeyOrTransform.slice(1)}`;
+            value = (entity as any)[getterMethod]?.();
+          }
+        }
         if (value !== undefined && value !== null) {
           response[key] = value as any;
         }

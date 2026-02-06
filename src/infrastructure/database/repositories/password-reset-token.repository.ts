@@ -2,7 +2,7 @@ import { LessThan, Repository } from 'typeorm';
 import { AppDataSource } from '../data-source/data-source';
 import { injectable } from 'inversify';
 import User from '@/domain/entity/user';
-import { IPasswordResetTokenRepository } from '@/domain/repository/reset-token.repository ';
+import { IPasswordResetTokenRepository } from '@/domain/repository/reset-token.repository';
 import { PasswordResetEntity } from '../entities/password-reset-tokens';
 import { ResetToken } from '@/domain/entity/reset-token';
 

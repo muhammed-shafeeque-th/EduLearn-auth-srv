@@ -1,4 +1,4 @@
-import RefreshToken from '@/application/dtos/new-refresh-token.dto';
+import RefreshToken from '@/application/dtos/refresh-token.dto';
 import { IAuthTokens } from '@/shared/types/auth.tokens';
 
 /**

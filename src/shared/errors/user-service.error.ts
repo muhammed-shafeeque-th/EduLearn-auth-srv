@@ -1,8 +1,10 @@
-import { BaseError, ErrorCodes, ErrorStatusCodes } from '@mdshafeeq-repo/edulearn-common';
+import { BaseError } from './base-error';
+import { ErrorCodes } from './error-codes/error-codes';
+import { StatusCodes } from './error-codes/error-status-codes';
 
 export abstract class UserServiceError extends BaseError {
   abstract errorCode: ErrorCodes;
-  abstract statusCode: ErrorStatusCodes;
+  abstract statusCode: StatusCodes;
 
   constructor(message?: string) {
     super(message);
