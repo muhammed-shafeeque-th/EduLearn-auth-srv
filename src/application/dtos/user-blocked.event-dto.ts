@@ -1,8 +1,7 @@
 /* eslint-disable @typescript-eslint/no-empty-object-type */
 import { IsEmail, IsNotEmpty, IsOptional, IsString } from 'class-validator';
 import BaseEventDto from './base-event.dto';
-import { UserStatus } from '@/shared/types/user-status';
-import { UserRoles } from '@/shared/types/user-types';
+import { UserStatus, UserRoles } from '@/domain/entity/user';
 import { BaseEvent } from '@/domain/events/types/base-event';
 
 export interface UserBlockedEvent

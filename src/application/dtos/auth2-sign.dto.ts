@@ -1,6 +1,6 @@
 import { IsNotEmpty, IsEnum, IsString } from 'class-validator';
-import { AuthType } from '@/shared/types/user-types';
 import { Auth2SignRequest } from '@/infrastructure/gRPC/generated/auth_service';
+import { AuthType } from '@/domain/entity/user';
 
 export default class Auth2SignDto implements Auth2SignRequest {
   @IsNotEmpty({ message: 'Token is required' })

@@ -1,13 +1,5 @@
-import {
-  IsEmail,
-  IsNotEmpty,
-  MinLength,
-  IsEnum,
-  IsString,
-  IsOptional,
-  IsBoolean,
-} from 'class-validator';
-import { AuthType, UserRoles } from '@/shared/types/user-types';
+import { IsEmail, IsNotEmpty, MinLength, IsEnum, IsString, IsOptional } from 'class-validator';
+import { AuthType, UserRoles } from '@/domain/entity/user';
 
 export default class RegisterUserDto {
   @IsEmail({}, { message: 'Invalid email format' })

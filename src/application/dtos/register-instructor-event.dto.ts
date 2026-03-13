@@ -7,12 +7,9 @@ import {
   IsOptional,
   IsUUID,
 } from 'class-validator';
-import { AuthType, UserRoles } from '@/shared/types/user-types';
+import { AuthType, UserRoles } from '@/domain/entity/user';
 import BaseEventDto from './base-event.dto';
 
-// -----------
-// Payload DTO: Focused on only business fields for instructor registration
-// -----------
 export class RegisterInstructorEventDtoPayload {
   @IsUUID()
   userId!: string;
