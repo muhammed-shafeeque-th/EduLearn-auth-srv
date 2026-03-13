@@ -7,8 +7,7 @@ import {
   IsOptional,
   IsUUID,
 } from 'class-validator';
-import { UserRoles } from '@/shared/types/user-types';
-import { UserStatus } from '@/shared/types/user-status';
+import { UserRoles, UserStatus } from '@/domain/entity/user';
 import BaseEventDto from './base-event.dto';
 import { UserUpdatedEvent } from '@/domain/events/types/user-service.events';
 
