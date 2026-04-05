@@ -8,11 +8,24 @@ interface UserProps {
   avatar?: string;
   authProvider?: string;
   username?: string;
-  role?: UserRoles;
+  roles?: UserRoles[];
+  roleStatus?: Partial<Record<UserRoles, RoleStatus>>;
   status?: UserStatus;
   createdAt?: Date;
   updatedAt?: Date;
   lastLogin?: Date;
+}
+
+// export enum UserStatus {
+//   ACTIVE = 'active',
+//   BLOCKED = 'blocked',
+//   DELETED = 'deleted',
+// }
+
+export enum RoleStatus {
+  ACTIVE = 'active',
+  SUSPENDED = 'suspended',
+  BLOCKED = 'blocked',
 }
 
 export enum UserStatus {
@@ -21,6 +34,7 @@ export enum UserStatus {
   ACTIVE = 'active',
   NOT_ACTIVE = 'not-active',
   BLOCKED = 'blocked',
+  DELETED = 'deleted',
 }
 
 export enum UserRoles {
@@ -44,7 +58,8 @@ export default class User {
   private username?: string;
   private authType: AuthType;
   private authProvider?: string;
-  private role: UserRoles;
+  private roles: UserRoles[];
+  private roleStatus: Record<UserRoles, RoleStatus>;
   private status: UserStatus;
   private createdAt: Date;
   private updatedAt: Date;
@@ -60,7 +75,19 @@ export default class User {
     this.username = props.username;
     this.authType = props.authType;
     this.authProvider = props.authProvider;
-    this.role = props.role ?? UserRoles.STUDENT;
+    this.roles =
+      Array.isArray(props.roles) && props.roles.length > 0 ? props.roles : [UserRoles.STUDENT];
+
+    // Initialize roleStatus defaults
+    this.roleStatus = {
+      [UserRoles.STUDENT]: RoleStatus.ACTIVE,
+      [UserRoles.INSTRUCTOR]: RoleStatus.ACTIVE,
+      [UserRoles.ADMIN]: RoleStatus.ACTIVE,
+    };
+    if (props.roleStatus) {
+      Object.assign(this.roleStatus, props.roleStatus);
+    }
+
     this.status = props.status ?? UserStatus.NOT_VERIFIED;
     this.createdAt = props.createdAt ? new Date(props.createdAt) : new Date();
     this.updatedAt = props.updatedAt ? new Date(props.updatedAt) : new Date();
@@ -77,6 +104,10 @@ export default class User {
 
   public isBlocked(): boolean {
     return this.status === UserStatus.BLOCKED;
+  }
+
+  public isRoleBlocked(role: UserRoles): boolean {
+    return this.roleStatus[role] === RoleStatus.BLOCKED;
   }
 
   public isActive(): boolean {
@@ -96,15 +127,15 @@ export default class User {
   }
 
   public isInstructor(): boolean {
-    return this.role === UserRoles.INSTRUCTOR;
+    return this.roles.includes(UserRoles.INSTRUCTOR);
   }
 
   public isAdmin(): boolean {
-    return this.role === UserRoles.ADMIN;
+    return this.roles.includes(UserRoles.ADMIN);
   }
 
   public isStudent(): boolean {
-    return this.role === UserRoles.STUDENT;
+    return this.roles.includes(UserRoles.STUDENT);
   }
 
   public isEmailAuth(): boolean {
@@ -116,9 +147,10 @@ export default class User {
   }
 
   public login(): boolean {
-    if (this.status === UserStatus.BLOCKED) {
+    if (this.isBlocked()) {
       return false;
     }
+    // If student role is blocked uniquely,
     if (this.status !== UserStatus.ACTIVE) {
       this.status = UserStatus.ACTIVE;
     }
@@ -131,15 +163,38 @@ export default class User {
    * Perform a logout: set NOT_ACTIVE, update time
    */
   public logout(): void {
-    if (this.status === UserStatus.BLOCKED) {
+    if (this.isBlocked()) {
       return;
     }
     this.status = UserStatus.NOT_ACTIVE;
     this.touch();
   }
 
+  public syncRolesAndStatus(payload: {
+    roles?: UserRoles[];
+    roleStatus?: Partial<Record<UserRoles, RoleStatus>>;
+    status?: UserStatus;
+  }): void {
+    if (payload.roles) {
+      this.roles = payload.roles;
+    }
+    if (payload.roleStatus) {
+      this.roleStatus = { ...this.roleStatus, ...payload.roleStatus } as Record<
+        UserRoles,
+        RoleStatus
+      >;
+    }
+    if (payload.status) {
+      if (this.status !== payload.status) {
+        this.status =
+          payload.status === UserStatus.BLOCKED ? UserStatus.BLOCKED : UserStatus.ACTIVE;
+      }
+    }
+    this.touch();
+  }
+
   /**
-   * Block a user
+   * Block an entire account
    */
   public block(): void {
     if (this.status !== UserStatus.BLOCKED) {
@@ -155,11 +210,25 @@ export default class User {
     }
   }
 
+  public blockRole(role: UserRoles): void {
+    if (this.roleStatus[role] !== RoleStatus.BLOCKED) {
+      this.roleStatus[role] = RoleStatus.BLOCKED;
+      this.touch();
+    }
+  }
+
+  public unblockRole(role: UserRoles): void {
+    if (this.roleStatus[role] === RoleStatus.BLOCKED) {
+      this.roleStatus[role] = RoleStatus.ACTIVE;
+      this.touch();
+    }
+  }
+
   /**
    * Transition user status to VERIFIED if rules allow
    */
   public verify(): void {
-    if (this.status !== UserStatus.VERIFIED && this.status !== UserStatus.BLOCKED) {
+    if (this.status !== UserStatus.VERIFIED && !this.isBlocked()) {
       this.status = UserStatus.VERIFIED;
       this.touch();
     }
@@ -170,7 +239,7 @@ export default class User {
    * Updates last login time and touches the user.
    */
   public activate(): void {
-    if (this.status === UserStatus.BLOCKED) {
+    if (this.isBlocked()) {
       throw new Error('Blocked user cannot be activated.');
     }
     if (this.status !== UserStatus.ACTIVE) {
@@ -184,7 +253,7 @@ export default class User {
    * Set the user status to NOT_ACTIVE, if rules allow.
    */
   public deactivate(): void {
-    if (this.status === UserStatus.BLOCKED) {
+    if (this.isBlocked()) {
       throw new Error('Blocked user cannot be deactivated.');
     }
     if (this.status !== UserStatus.NOT_ACTIVE) {
@@ -197,7 +266,7 @@ export default class User {
    * Set the user status to NOT_VERIFIED, if rules allow.
    */
   public markNotVerified(): void {
-    if (this.status === UserStatus.BLOCKED) {
+    if (this.isBlocked()) {
       throw new Error('Blocked user cannot be marked as not-verified.');
     }
     if (this.status !== UserStatus.NOT_VERIFIED) {
@@ -207,10 +276,10 @@ export default class User {
   }
 
   public promoteInstructor(): void {
-    if (this.role === UserRoles.INSTRUCTOR) {
+    if (this.isInstructor()) {
       return;
     }
-    this.role = UserRoles.INSTRUCTOR;
+    this.roles.push(UserRoles.INSTRUCTOR);
     this.touch();
   }
 
@@ -220,12 +289,13 @@ export default class User {
    * @deprecated Use specific role setter methods instead of changeRole for role updates.
    */
   public changeRole(newRole: UserRoles): void {
-    if (this.role === newRole) return;
+    if (this.roles.includes(newRole)) return;
 
-    if (this.role === UserRoles.ADMIN && newRole === UserRoles.STUDENT) {
+    if (this.isAdmin() && newRole === UserRoles.STUDENT) {
       throw new Error('Cannot demote ADMIN to STUDENT directly.');
     }
-    this.role = newRole;
+    // Legacy support: if changing role, replace entirely or just append depending on business logic. Default to replacing.
+    this.roles = [newRole];
     this.touch();
   }
 
@@ -314,9 +384,13 @@ export default class User {
   public getAuthProvider(): string | undefined {
     return this.authProvider;
   }
-  public getRole(): UserRoles {
-    return this.role;
+  public getRoles(): UserRoles[] {
+    return [...this.roles];
   }
+  public getRoleStatusMap(): Record<UserRoles, RoleStatus> {
+    return { ...this.roleStatus };
+  }
+
   public getStatus(): UserStatus {
     return this.status;
   }
