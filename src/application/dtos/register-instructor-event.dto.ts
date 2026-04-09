@@ -17,10 +17,6 @@ export class RegisterInstructorEventDtoPayload {
   @IsEmail({}, { message: 'Invalid email format' })
   email!: string;
 
-  @IsNotEmpty({ message: 'Password is required' })
-  @MinLength(6, { message: 'Password must be at least 6 characters long' })
-  password!: string;
-
   @IsString({ message: 'Avatar must be a valid string' })
   @IsOptional()
   avatar?: string;
@@ -33,8 +29,7 @@ export class RegisterInstructorEventDtoPayload {
   @MinLength(3, { message: 'Last name must be at least 3 characters long' })
   lastName?: string;
 
-  @IsEnum(UserRoles, { message: 'Role must be one of the valid user roles' })
-  role!: UserRoles;
+  roles!: UserRoles[];
 
   @IsEnum(AuthType, { message: 'AuthType must be one of the valid auth types' })
   authType!: AuthType;

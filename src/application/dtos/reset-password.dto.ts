@@ -1,5 +1,5 @@
 import { ResetPasswordRequest } from '@/infrastructure/gRPC/generated/auth_service';
-import { IsNotEmpty, IsString, Min } from 'class-validator';
+import { IsNotEmpty, IsString } from 'class-validator';
 
 export default class ResetPasswordDto implements ResetPasswordRequest {
   @IsString({ message: 'token must be string' })

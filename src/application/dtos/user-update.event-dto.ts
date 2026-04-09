@@ -9,9 +9,9 @@ import {
 } from 'class-validator';
 import { UserRoles, UserStatus } from '@/domain/entity/user';
 import BaseEventDto from './base-event.dto';
-import { UserUpdatedEvent } from '@/domain/events/types/user-service.events';
+import { UserAccountUpdatedEvent } from '@/domain/events/types/user-lifecycle.events';
 
-export class UserUpdateDtoPayload implements UserUpdatedEvent {
+export class UserUpdateDtoPayload implements UserAccountUpdatedEvent {
   @IsUUID()
   userId!: string;
 
@@ -38,8 +38,7 @@ export class UserUpdateDtoPayload implements UserUpdatedEvent {
   @MinLength(3, { message: 'Name must be at least 3 characters long' })
   lastName?: string;
 
-  @IsEnum(UserRoles, { message: 'Role must be one of the valid user roles' })
-  role: UserRoles;
+  roles: UserRoles[];
 
   @IsEnum(UserStatus, { message: 'status must be one of the valid user statuss' })
   status: UserStatus;
