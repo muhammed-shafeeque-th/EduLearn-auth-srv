@@ -38,7 +38,7 @@ export class KafkaClient {
         },
       },
     });
-    this.logger.info('kafka  config: ' + JSON.stringify(this.config));
+    // this.logger.info('kafka  config: ' + JSON.stringify(this.config));
     this.producer = this.kafka.producer(this.config.producer);
     this.consumer = this.kafka.consumer(this.config.consumer);
 

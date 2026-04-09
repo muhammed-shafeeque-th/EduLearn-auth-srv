@@ -73,7 +73,7 @@ export class KafkaPublisher {
     );
 
     await Promise.all(batchPromises);
-    this.logger.info(`Batch of ${messages.length} events emitted to topic: ${topic}`);
+    this.logger.debug(`Batch of ${messages.length} events emitted to topic: ${topic}`);
   }
 
   // Send with acknowledgment
