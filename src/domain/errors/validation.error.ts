@@ -1,14 +1,10 @@
 import { ValidationError as InvalidError } from 'class-validator';
-import { BaseError } from './base-error';
-import { ErrorCodes } from './error-codes/error-codes';
-import { StatusCodes } from './error-codes/error-status-codes';
+import { ErrorCode } from '../../shared/errors/error-codes/error-codes';
+import { DomainError } from './domain.exceptions';
 
-export class ValidationError extends BaseError {
-  public errorCode: ErrorCodes.INVALID_ARGUMENT = ErrorCodes.INVALID_ARGUMENT;
-  public statusCode: StatusCodes.INVALID_ARGUMENT = StatusCodes.INVALID_ARGUMENT;
-
+export class ValidationError extends DomainError {
   public constructor(private errors: InvalidError[]) {
-    super('Invalid request parameters ');
+    super(ErrorCode.INVALID_ARGUMENT, 'Invalid request parameters', 'REQUEST_VALIDATION_ERROR');
   }
 
   public serializeErrors(): { message: string; field?: string }[] {

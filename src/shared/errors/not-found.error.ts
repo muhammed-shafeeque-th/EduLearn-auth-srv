@@ -1,13 +1,9 @@
 import { BaseError } from './base-error';
-import { ErrorCodes } from './error-codes/error-codes';
-import { StatusCodes } from './error-codes/error-status-codes';
+import { ErrorCode } from './error-codes/error-codes';
 
 export default class NotFoundError extends BaseError {
-  errorCode: ErrorCodes = ErrorCodes.NOT_FOUND_ERROR;
-  public statusCode: StatusCodes = StatusCodes.NOT_FOUND;
-
   constructor(message?: string) {
-    super(message || 'Required resource not found.');
+    super(ErrorCode.NOT_FOUND, message || 'Required resource not found.', 'RESOURCE_NOT_FOUND');
   }
 
   serializeErrors(): { message: string; field?: string }[] {

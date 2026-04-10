@@ -1,12 +1,13 @@
 import { BaseError } from './base-error';
-import { ErrorCodes } from './error-codes/error-codes';
-import { StatusCodes } from './error-codes/error-status-codes';
+import { ErrorCode } from './error-codes/error-codes';
 
 export default class BadRequestError extends BaseError {
-  errorCode: ErrorCodes = ErrorCodes.BAD_REQUEST;
-  public statusCode: StatusCodes = StatusCodes.BAD_REQUEST;
   constructor(message?: string) {
-    super(message || 'invalid parameters!. please check request parameters ');
+    super(
+      ErrorCode.INVALID_ARGUMENT,
+      message || 'invalid parameters!. please check request parameters ',
+      'INVALID_REQUEST_PARAMETERS',
+    );
   }
 
   serializeErrors(): { message: string; field?: string }[] {

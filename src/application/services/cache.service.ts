@@ -1,4 +1,4 @@
-import Redis from "ioredis";
+import Redis from 'ioredis';
 
 /**
  * Interface representing a cache service for storing and retrieving data.

@@ -1,91 +1,94 @@
-// kafka-wrapper.ts
-import { Kafka, Producer, Consumer } from 'kafkajs';
+import { CompressionTypes } from 'kafkajs';
 
-export class KafkaWrapper {
-  private _kafka?: Kafka;
-  private _producer?: Producer;
-  private _consumers: Consumer[] = [];
+export * from './decorators.kafka';
+export * from './kafka.client';
+export * from './kafka.manager';
+export * from './kafka.publisher';
+import * as kafkaTypes from './kafka.types';
+import { getEnvs } from '@/shared/utils/getEnv';
+export { kafkaTypes };
 
-  public get kafka(): Kafka {
-    if (!this._kafka) {
-      throw new Error('Cannot access Kafka before connecting');
-    }
-    return this._kafka;
-  }
+const { KAFKA_BROKERS, KAFKA_CLIENT_ID, KAFKA_CONSUMER_GROUP, NODE_ENV } = getEnvs({
+  KAFKA_CLIENT_ID: 'auth-service',
+  KAFKA_BROKERS: 'kafka:9092',
+  NODE_ENV: 'development',
+  KAFKA_USERNAME: { required: false },
+  KAFKA_PASSWORD: { required: false },
+  KAFKA_CONSUMER_GROUP: 'auth-service-group',
+  SCHEMA_REGISTRY_URL: { required: false },
+  SCHEMA_REGISTRY_PASSWORD: { required: false },
+  SCHEMA_REGISTRY_USERNAME: { required: false },
+});
 
-  public get producer(): Producer {
-    if (!this._producer) {
-      throw new Error('Cannot access producer before connecting');
-    }
-    return this._producer;
-  }
-
-  public async connect(clientId: string, brokers: string[]): Promise<void> {
-    this._kafka = new Kafka({
-      clientId,
-      brokers,
-      retry: {
-        initialRetryTime: 100, // 100ms initial delay
-        retries: 5, // Maximum 5 retries
-        factor: 2, // Exponential factor (100ms, 200ms, 400ms...)
-        maxRetryTime: 30000, // Cap at 30 seconds
-      },
-    });
-
-    this._producer = this._kafka.producer({
-      allowAutoTopicCreation: false,
-      idempotent: true, // Ensures exactly-once delivery semantics
-      transactionalId: `${clientId}-producer`, // Enable transactions for exactly-once semantics
-
-      // Idempotency for exactly-once semantics
-      transactionTimeout: 30000,
-    });
-
-    try {
-      await this._producer.connect();
-      console.log('Connected to Kafka producer');
-    } catch (err) {
-      console.error('Failed to connect to Kafka', err);
-      throw err;
-    }
-  }
-
-  public async disconnect(): Promise<void> {
-    try {
-      // Disconnect all consumers first
-      await Promise.all(this._consumers.map((consumer) => consumer.disconnect()));
-
-      // Then disconnect the producer
-      if (this._producer) {
-        await this._producer.disconnect();
+export const defaultConfig: kafkaTypes.KafkaConfig = {
+  client: {
+    clientId: KAFKA_CLIENT_ID,
+    brokers: KAFKA_BROKERS?.toString().split(','),
+    ssl: NODE_ENV === 'production',
+    sasl: process.env.KAFKA_USERNAME
+      ? {
+          mechanism: 'scram-sha-256',
+          username: process.env.KAFKA_USERNAME,
+          password: process.env.KAFKA_PASSWORD,
+        }
+      : undefined,
+    connectionTimeout: 10000,
+    requestTimeout: 30000,
+  } as kafkaTypes.KafkaConfig['client'],
+  consumer: {
+    groupId: KAFKA_CONSUMER_GROUP,
+    sessionTimeout: 30000,
+    rebalanceTimeout: 60000,
+    heartbeatInterval: 3000,
+    maxBytesPerPartition: 1048576,
+    fetchMinBytes: 1024,
+    fetchMaxWaitMs: 500,
+    autoCommit: true,
+    autoCommitInterval: 5000,
+    retry: {
+      initialRetryTime: 100,
+      retries: 10,
+      factor: 2,
+      maxRetryTime: 30000,
+    },
+  },
+  producer: {
+    maxInFlightRequests: 1,
+    idempotent: true,
+    batchSize: 16384,
+    lingerMs: 5,
+    compressionType: CompressionTypes.Snappy,
+    retry: {
+      initialRetryTime: 100,
+      retries: 10,
+      factor: 2,
+      maxRetryTime: 30000,
+    },
+  },
+  schemaRegistry: process.env.SCHEMA_REGISTRY_URL
+    ? {
+        host: process.env.SCHEMA_REGISTRY_URL,
+        auth: process.env.SCHEMA_REGISTRY_USERNAME
+          ? {
+              username: process.env.SCHEMA_REGISTRY_USERNAME,
+              password: process.env.SCHEMA_REGISTRY_PASSWORD,
+            }
+          : undefined,
       }
-      console.log('Disconnected from Kafka');
-    } catch (err) {
-      console.error('Error disconnecting from Kafka', err);
-      throw err;
-    }
-  }
-
-  public createConsumer(groupId: string): Consumer {
-    if (!this._kafka) {
-      throw new Error('Cannot create consumer before connecting to Kafka');
-    }
-
-    const consumer = this._kafka.consumer({
-      groupId,
-      sessionTimeout: 30000,
-      heartbeatInterval: 3000,
-      retry: {
-        initialRetryTime: 100, // 100ms initial delay
-        retries: 5, // Maximum 10 retries
-        factor: 2, // Exponential factor (100ms, 200ms, 400ms...)
-        maxRetryTime: 30000, // Cap at 30 seconds
-      },
-    });
-
-    this._consumers.push(consumer);
-    return consumer;
-  }
-}
-
-export const kafkaWrapper = new KafkaWrapper();
+    : undefined,
+  // deadLetterQueue: {
+  //   enabled: true,
+  //   topic: 'dead-letter-queue',
+  //   maxRetries: 3,
+  // },
+  // circuitBreaker: {
+  //   enabled: true,
+  //   failureThreshold: 5,
+  //   recoveryTimeout: 60000,
+  // },
+  // batching: {
+  //   enabled: true,
+  //   maxBatchSize: 100,
+  //   maxWaitTime: 10,
+  // },
+} as kafkaTypes.KafkaConfig;

@@ -3,7 +3,7 @@ import { IsEmail, IsNotEmpty, IsString, IsOptional } from 'class-validator';
 import BaseEventDto from './base-event.dto';
 import { BaseEvent } from '@/domain/events/types/base-event';
 
-export interface UserUnblockedEvent
+export interface InstructorUnblockedEvent
   extends BaseEvent<{
     userId: string;
     email: string;
@@ -11,9 +11,11 @@ export interface UserUnblockedEvent
     status: string;
     firstName?: string;
     avatar?: string;
+    roles?: string[];
+    roleStatus?: Record<string, string>;
   }> {}
 
-export class UserUnblockedDtoPayload {
+export class InstructorUnblockedDtoPayload {
   @IsString()
   @IsNotEmpty({ message: 'userId is required' })
   userId!: string;
@@ -21,10 +23,6 @@ export class UserUnblockedDtoPayload {
   @IsEmail({}, { message: 'Invalid email format' })
   @IsNotEmpty({ message: 'email is required' })
   email!: string;
-
-  @IsString()
-  @IsNotEmpty({ message: 'role is required' })
-  role!: string;
 
   @IsString()
   @IsNotEmpty({ message: 'status is required' })
@@ -37,6 +35,12 @@ export class UserUnblockedDtoPayload {
   @IsOptional()
   @IsString()
   avatar?: string;
+
+  @IsOptional()
+  roles?: string[];
+
+  @IsOptional()
+  roleStatus?: Record<string, string>;
 }
 
-export default class UserUnblockedDto extends BaseEventDto<UserUnblockedDtoPayload> {}
+export default class InstructorUnblockedDto extends BaseEventDto<InstructorUnblockedDtoPayload> {}

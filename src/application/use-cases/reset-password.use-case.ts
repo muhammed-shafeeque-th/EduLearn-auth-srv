@@ -6,9 +6,9 @@ import { TracingService } from '@/infrastructure/observability/tracing/trace.ser
 import { LoggingService } from '@/infrastructure/observability/logging/logging.service';
 import { IResetPasswordUseCase } from '../adaptors/reset-password.inteface';
 import ResetPasswordDto from '../dtos/reset-password.dto';
-import { IPasswordResetTokenRepository } from '@/domain/repository/reset-token.repository ';
+import { IPasswordResetTokenRepository } from '@/domain/repository/reset-token.repository';
 import NotFoundError from '@/shared/errors/not-found.error';
-import { AuthType } from '@/shared/types/user-types';
+import { AuthType } from '@/domain/entity/user';
 
 @injectable()
 export default class ResetPasswordUseCaseImpl implements IResetPasswordUseCase {

@@ -9,9 +9,10 @@ import { TracingService } from '@/infrastructure/observability/tracing/trace.ser
 import { LoggingService } from '@/infrastructure/observability/logging/logging.service';
 import { IAuthTokens } from '@/shared/types/auth.tokens';
 import { calculateRefreshTokenExpiryInMs } from '@/shared/utils/token-manager';
-import { UserRoles } from '@/shared/types/user-types';
 import IAdminLoginUseCase from '../../adaptors/admin-login.interface';
 import { getEnvs } from '@/shared/utils/getEnv';
+import { UserRoles } from '@/domain/entity/user';
+import { RolePermissions } from '@/shared/types';
 
 const config = getEnvs({
   AUTH_ADMIN_EMAIL: '',
@@ -58,6 +59,8 @@ export default class AdminLoginUseCaseImpl implements IAdminLoginUseCase {
         role: UserRoles.ADMIN as string,
         userId: String(config.AUTH_USER_ID),
         username: 'EduLearn-admin',
+        roles: ['admin'],
+        permissions: [...RolePermissions.admin, ...RolePermissions.instructor],
       };
 
       const accessToken = this.tokenService.generateAccessToken({

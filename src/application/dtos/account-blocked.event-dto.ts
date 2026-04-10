@@ -1,21 +1,20 @@
-/* eslint-disable @typescript-eslint/no-empty-object-type */
 import { IsEmail, IsNotEmpty, IsOptional, IsString } from 'class-validator';
 import BaseEventDto from './base-event.dto';
-import { UserStatus } from '@/shared/types/user-status';
-import { UserRoles } from '@/shared/types/user-types';
+import { UserStatus, UserRoles } from '@/domain/entity/user';
 import { BaseEvent } from '@/domain/events/types/base-event';
 
-export interface UserBlockedEvent
-  extends BaseEvent<{
-    userId: string;
-    email: string;
-    role: UserRoles;
-    status: UserStatus.BLOCKED;
-    firstName?: string;
-    avatar?: string;
-  }> {}
+export type AccountBlockedEvent = BaseEvent<{
+  userId: string;
+  email: string;
+  role: UserRoles;
+  status: UserStatus.BLOCKED;
+  firstName?: string;
+  avatar?: string;
+  roles?: UserRoles[];
+  roleStatus?: Record<UserRoles, string>;
+}>;
 
-export class UserBlockedPayload {
+export class AccountBlockedPayload {
   @IsString()
   @IsNotEmpty({ message: 'userId is required' })
   userId!: string;
@@ -23,10 +22,6 @@ export class UserBlockedPayload {
   @IsEmail({}, { message: 'Invalid email format' })
   @IsNotEmpty({ message: 'email is required' })
   email!: string;
-
-  @IsString()
-  @IsNotEmpty({ message: 'role is required' })
-  role!: string;
 
   @IsString()
   @IsNotEmpty({ message: 'status is required' })
@@ -39,5 +34,11 @@ export class UserBlockedPayload {
   @IsOptional()
   @IsString()
   avatar?: string;
+
+  @IsOptional()
+  roles?: UserRoles[];
+
+  @IsOptional()
+  roleStatus?: Record<UserRoles, string>;
 }
-export default class UserBlockedDto extends BaseEventDto<UserBlockedPayload> {}
+export default class AccountBlockedDto extends BaseEventDto<AccountBlockedPayload> {}

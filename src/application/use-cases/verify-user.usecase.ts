@@ -15,37 +15,15 @@ import { TracingService } from '@/infrastructure/observability/tracing/trace.ser
 import { LoggingService } from '@/infrastructure/observability/logging/logging.service';
 import { IAuthTokens } from '@/shared/types/auth.tokens';
 import IEventPublisher from '../services/event-publisher.service';
-import { KafkaTopics, UserCreatedEvent } from '@/shared/events';
+import { KafkaTopics } from '@/shared/events';
 import { calculateRefreshTokenExpiryInMs, mapUserToToken } from '@/shared/utils/token-manager';
 import { ITemplateRenderer } from '../services/template-renderer';
 import { KafkaEventFactory } from '@/domain/events/entity/event-factory';
-import { EmailNotificationEvent } from '@/domain/events/types/email-notification.event';
+import { EmailNotificationEvent } from '@/domain/events/types/notification-service.events';
 import { InAppNotificationEvent } from '@/domain/events/types/in-app-notification.event';
 import { getEnvs } from '@/shared/utils/getEnv';
-
-type WelcomeEmailTemplateData = {
-  userName: string;
-  email: string;
-  dashboardUrl: string;
-  supportEmail: string;
-  helpCenterUrl: string;
-  blogUrl: string;
-  companyAddress: string;
-  unsubscribeUrl: string;
-  privacyPolicyUrl: string;
-  termsUrl: string;
-  socialLinks: {
-    twitter?: string;
-    facebook?: string;
-    linkedin?: string;
-    instagram?: string;
-    youtube?: string;
-  };
-  currentYear?: number;
-  currentDate?: string;
-};
-
-// ---- Configuration ----
+import { WelcomeEmailTemplateData } from '@/shared/types';
+import { UserAccountCreatedEvent } from '@/domain/events/types/user-lifecycle.events';
 
 const config = getEnvs({
   COMPANY_NAME: '',
@@ -111,7 +89,6 @@ export default class VerifyUserUseCaseImpl implements IVerifyUserUseCase {
       // Mark as verified
       user.verify();
 
-      // Persist the user (throws if duplicate or DB error)
       const created = await this.userRepository.create(user);
 
       if (!created) {
@@ -165,20 +142,23 @@ export default class VerifyUserUseCaseImpl implements IVerifyUserUseCase {
    * Publishes the UserCreated event to Kafka.
    */
   private async publishUserCreatedEvent(user: User): Promise<void> {
-    await this.eventPublisher.publish<UserCreatedEvent>(
+    await this.eventPublisher.publish<UserAccountCreatedEvent>(
       KafkaTopics.AuthUserCreated,
       {
         eventId: this.uuidService.generate(),
-        eventType: 'AuthUserCreated',
+        eventType: 'UserAccountCreatedEvent',
         timestamp: Date.now(),
-        email: user.getEmail(),
-        role: user.getRole(),
-        userId: user.getId(),
-        avatar: user.getAvatar(),
-        createdAt: user.getCreatedAt(),
-        firstName: user.getFirstName(),
-        lastName: user.getLastName(),
-        status: user.getStatus(),
+        source: 'auth-service',
+        payload: {
+          email: user.getEmail(),
+          roles: user.getRoles(),
+          userId: user.getId(),
+          avatar: user.getAvatar(),
+          createdAt: user.getCreatedAt(),
+          firstName: user.getFirstName(),
+          lastName: user.getLastName(),
+          status: user.getStatus(),
+        },
       },
       user.getId(),
     );

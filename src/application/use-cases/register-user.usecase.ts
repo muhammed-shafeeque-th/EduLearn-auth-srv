@@ -5,18 +5,17 @@ import IHashService from '../services/hash.service';
 import IUserRepository from '@/domain/repository/user.repository';
 import IUUIDService from '../services/uuid.service';
 import RegisterUserDto from '../dtos/register-user.dto';
-import EmailAlreadyExist from '@/shared/errors/user-already-exist.error';
-import User from '@/domain/entity/user';
+import EmailAlreadyExist from '@/domain/errors/user-already-exist.error';
+import User, { AuthType } from '@/domain/entity/user';
 import { ICacheService } from '../services/cache.service';
-import { AuthType } from '@/shared/types/user-types';
 import { TracingService } from '@/infrastructure/observability/tracing/trace.service';
 import { LoggingService } from '@/infrastructure/observability/logging/logging.service';
-import { KafkaTopics, OtpRequestEvent } from '@/shared/events';
+import { KafkaTopics } from '@/shared/events';
 import IEventPublisher from '../services/event-publisher.service';
+import { OtpRequestEvent } from '@/domain/events/types/notification-service.events';
 
 @injectable()
 export default class RegisterUserUseCaseImpl implements IRegisterUserUseCase {
-  // private readonly cacheService: ICacheService;
   public constructor(
     @inject(TYPES.IHashService) private readonly hashService: IHashService,
     @inject(TYPES.IUserRepository) private readonly userRepository: IUserRepository,
@@ -29,12 +28,10 @@ export default class RegisterUserUseCaseImpl implements IRegisterUserUseCase {
     private readonly logger: LoggingService,
   ) {}
   public async execute(dto: RegisterUserDto): Promise<User> {
-    // Start span
     const span = this.tracer.startSpan('RegisterUserUserCaseImpl.execute', {
       'user.email': dto.email,
     });
     try {
-      // Checks whether user already exist with provided email
       const alreadyExist = await this.userRepository.findByEmail(dto.email);
 
       // Throws an error if user already exist with given email
@@ -47,11 +44,28 @@ export default class RegisterUserUseCaseImpl implements IRegisterUserUseCase {
       this.logger.debug(`User not exist with the give email: ${dto.email}`);
       span.setAttribute('email.exist', false);
 
+      // Check for idempotency
+      const userCacheExist = await this.cacheService.get<any>(dto.email);
+      if (userCacheExist) {
+        // update/set to renew ttl
+        const user = User.fromPrimitive({
+          id: userCacheExist.id,
+          email: userCacheExist.email,
+          authType: userCacheExist.authType,
+          firstName: userCacheExist.firstName,
+          password: userCacheExist.password,
+          lastName: userCacheExist.lastName,
+          avatar: userCacheExist.avatar,
+        });
+        await this.cacheService.set(user.getEmail(), user);
+
+        return user;
+      }
+
       // Skip password logic if the authType is OAuth2
       let hashedPassword: undefined | string;
 
       if (dto.authType === AuthType.EMAIL) {
-        // Hash the given password to not store password as plain text to db.
         hashedPassword = await this.hashService.hash(dto.password);
         this.logger.debug('User password hashed for user : ' + dto.email);
       }
@@ -72,7 +86,7 @@ export default class RegisterUserUseCaseImpl implements IRegisterUserUseCase {
       this.logger.debug('Initiated user data update to redis for temporary storage', {
         email: dto.email,
       });
-      // Save user data into redis.
+
       await this.cacheService.set(user.getEmail().toString(), user);
       this.logger.debug('Completed user data update to redis for temporary storage', {
         email: dto.email,
@@ -99,11 +113,14 @@ export default class RegisterUserUseCaseImpl implements IRegisterUserUseCase {
         {
           eventId: this.uuidService.generate(),
           eventType: 'OtpRequestEvent',
-          otpChannel: 'email',
           timestamp: Date.now(),
-          username: user.getFirstName(),
-          email: user.getEmail(),
-          userId: user.getId(),
+          source: 'auth-service',
+          payload: {
+            otpChannel: 'email',
+            username: user.getFirstName(),
+            email: user.getEmail(),
+            userId: user.getId(),
+          },
         },
         user.getId(),
       );
