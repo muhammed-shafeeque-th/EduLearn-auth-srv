@@ -76,6 +76,5 @@ export class EmailNotificationEventEntity {
     if (this.attachments && !Array.isArray(this.attachments)) {
       throw new Error('attachments must be an array of strings');
     }
-    // You can add further validation for email address format or other fields here
   }
 }
