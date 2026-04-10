@@ -90,7 +90,7 @@ export class LoggingService {
     for (const line of stackLines) {
       if (
         line &&
-        !line.includes('logging.service.ts') &&
+        !line.includes('logging.service') &&
         (line.startsWith('at ') || line.match(/\(([^)]+)\)/))
       ) {
         const match = line.match(/\(([^)]+)\)/) || line.match(/at (.+)/);
