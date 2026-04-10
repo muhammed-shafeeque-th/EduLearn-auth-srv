@@ -3,13 +3,13 @@ import { inject, injectable } from 'inversify';
 import IEventPublisher from '../services/event-publisher.service';
 import { LoggingService } from '@/infrastructure/observability/logging/logging.service';
 import { TracingService } from '@/infrastructure/observability/tracing/trace.service';
-import UserNotFoundError from '@/shared/errors/user-not-found.error';
+import UserNotFoundError from '@/domain/errors/user-not-found.error';
 import { TYPES } from '@/shared/constants/identifiers';
 import IRegisterInstructorUseCase from '../adaptors/register-instructor.interface';
 import RegisterInstructorEventDto from '../dtos/register-instructor-event.dto';
 
 @injectable()
-export default class RegisterInstructorUseCaseImpl implements IRegisterInstructorUseCase {
+export default class RegisteredInstructorUseCaseImpl implements IRegisterInstructorUseCase {
   public constructor(
     @inject(TYPES.IUserRepository) private readonly userRepository: IAuthUserRepository,
     @inject(TYPES.IEventPublisherService) private readonly kafkaProducer: IEventPublisher,
@@ -18,25 +18,23 @@ export default class RegisterInstructorUseCaseImpl implements IRegisterInstructo
   ) {}
   public async execute(dto: RegisterInstructorEventDto): Promise<void> {
     return this.tracer.startActiveSpan('UpdateUserUseCaseImpl.execute', async (span) => {
+      const { userId } = dto.payload;
+
       span.setAttributes({
-        userId: dto.userId,
+        userId: userId,
       });
 
-      this.logger.debug(`Executing UpdateUserUseCaseImpl for user : ${dto.userId}`);
+      this.logger.debug(`Executing UpdateUserUseCaseImpl for user : ${userId}`);
       // Checks whether user exist with provided userId
-      const user = await this.userRepository.findById(dto.userId);
+      const user = await this.userRepository.findById(userId);
 
-      // Throws an error if user NOT exist with given userId
-      if (!user) throw new UserNotFoundError(dto.userId);
+      if (!user) throw new UserNotFoundError(userId);
 
       user.promoteInstructor();
 
-      // Copy all enumerable properties from dto into user, override existing properties if any
-      // Object.assign(user, tempUser);
+      await this.userRepository.update(userId, user);
 
-      await this.userRepository.update(dto.userId, user);
-
-      this.logger.debug(`Instructor register event handled for user ${dto.userId}`);
+      this.logger.debug(`Instructor register event handled for user ${userId}`);
     });
   }
 }
