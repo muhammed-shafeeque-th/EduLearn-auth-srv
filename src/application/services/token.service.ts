@@ -1,49 +1,31 @@
+import { CustomJwtClaims } from '@/shared/types';
+
 export default interface ITokenService {
   /**
    * Signs the given data and returns a an Access token.
    * @param data - The data to sign.
    * @returns return the signed token.
    */
-  generateAccessToken<T extends IJwtUserData>(data: T): string;
+  generateAccessToken<T extends CustomJwtClaims>(data: T, secret?: string): string;
 
   /**
    * Signs the given data and returns a an Refresh token.
    * @param data - The data to sign.
    * @returns A promise that resolves to the signed token.
    */
-  generateRefreshToken<T extends IJwtUserData>(data: T): string;
+  generateRefreshToken<T extends CustomJwtClaims>(data: T, secret?: string): string;
 
   /**
-   * Decodes the given token and returns the decoded Access token data.
-   * @param token - The token to decode.
-   * @returns A promise that resolves to the decoded data.
+   * Decodes the given token and returns the verified Access token data.
+   * @param token - The token to verify.
+   * @returns A promise that resolves to the verified data.
    */
-  decodeAccessToken<T>(token: string): Promise<T>;
+  verifyAccessToken<T>(token: string, secret?: string): Promise<T>;
 
   /**
-   * Decodes the given token and returns the decoded Refresh token data.
-   * @param token - The token to decode.
-   * @returns A promise that resolves to the decoded data.
+   * Decodes the given token and returns the verified Refresh token data.
+   * @param token - The token to verify.
+   * @returns A promise that resolves to the verified data.
    */
-  decodeRefreshToken<T>(token: string): Promise<T>;
-}
-
-export interface IJwtUserData {
-  userId: string;
-  role: string;
-  username: string;
-  avatar?: string;
-}
-
-export interface StandardJwtClaims {
-  iat: number;
-  iss: string;
-  aud: string;
-  jti: string;
-  exp?: number;
-  sub?: string;
-}
-
-export interface IJWTClaimWithUser extends StandardJwtClaims {
-  user: IJwtUserData;
+  verifyRefreshToken<T>(token: string, secret?: string): Promise<T>;
 }
