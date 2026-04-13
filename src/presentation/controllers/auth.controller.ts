@@ -2,12 +2,10 @@ import { sendUnaryData, ServerUnaryCall } from '@grpc/grpc-js';
 import { inject, injectable } from 'inversify';
 import { TYPES } from '@/shared/constants/identifiers';
 import { validateDto } from '@/shared/utils/validator';
-import { parseMetadata } from '@/shared/utils/parse-metadata';
 import { ResponseMapper } from '../mappers/response-mapper';
 import { TracingService } from '@/infrastructure/observability/tracing/trace.service';
 import { LoggingService } from '@/infrastructure/observability/logging/logging.service';
 import { BaseError } from '@/shared/errors/base-error';
-import { AuthType, UserRoles } from '@/shared/types/user-types';
 
 import RegisterUserDto from '@/application/dtos/register-user.dto';
 import LoginUserDto from '@/application/dtos/login-user.dto';
@@ -53,10 +51,12 @@ import {
   AdminRefreshResponse,
   AdminRefreshRequest,
 } from '@/infrastructure/gRPC/generated/auth_service';
-import User from '@/domain/entity/user';
+import User, { AuthType, UserRoles } from '@/domain/entity/user';
 import IAdminLoginUseCase from '@/application/adaptors/admin-login.interface';
 import AdminLoginDto from '@/application/dtos/admin-login.dto';
 import { IRefreshTokenUseCase } from '@/application/adaptors/refresh-token.interface';
+import { getMetadataValues } from '@/shared/utils/get-metadata';
+import { GrpcErrorMapper } from '@/shared/errors/mapper/grpc-error.mapper';
 
 type GrpcCall<TRequest, TResponse> = ServerUnaryCall<TRequest, TResponse>;
 type GrpcCallback<TResponse> = sendUnaryData<TResponse>;
@@ -88,11 +88,7 @@ export default class AuthController {
   ) {
     method().catch((err) => {
       this.logger.warn('Error processing gRPC request', { error: err });
-      if (err instanceof BaseError) {
-        callback(null, { error: this.mapToError(err) } as any);
-      } else {
-        callback(err as any, null);
-      }
+      callback(GrpcErrorMapper.toGrpc(err));
     });
   }
 
@@ -121,11 +117,11 @@ export default class AuthController {
     this.runWithTracingSpan(
       'AuthController.RegisterUser',
       async (span) => {
-        parseMetadata(call.metadata, { traceId: { header: 'trace-id' } });
+        getMetadataValues(call.metadata, { traceId: 'trace-id' });
 
         const { email, role, password, avatar, firstName, lastName, authType } = call.request;
         span?.setAttribute('user.email', email);
-        this.logger.info('Handling RegisterUser', { ctx: AuthController.name, email });
+        this.logger.debug('Handling RegisterUser', { ctx: AuthController.name, email });
 
         const dto = RegisterUserDto.create({
           email,
@@ -138,14 +134,14 @@ export default class AuthController {
         });
 
         await validateDto(dto);
-        this.logger.info('Validation successful for RegisterUser parameters', { email });
+        this.logger.debug('Validation successful for RegisterUser parameters', { email });
 
         const user = await this.registerUserUseCase.execute(dto);
         const response = new ResponseMapper<User, RegisterUserResponse>({
           fields: { userId: (user: User): string => user.getId() },
         }).toResponse(user);
 
-        this.logger.info('RegisterUser completed', { email, userId: user.getId() });
+        this.logger.debug('RegisterUser completed', { email, userId: user.getId() });
         return response;
       },
       callback,
@@ -276,15 +272,14 @@ export default class AuthController {
       'AuthController.refreshToken',
       async (span) => {
         const { refreshToken } = call.request;
-        span?.setAttributes?.({ refreshToken });
 
         const dto = RefreshTokenDto.create({ refreshToken });
         await validateDto(dto);
-        this.logger.debug('Validation successful for getRefreshToken', { refreshToken });
+        this.logger.debug('Validation successful for getRefreshToken');
 
         const response = await this.refreshTokenUseCase.execute(dto);
 
-        this.logger.debug('getRefreshToken request completed', { refreshToken });
+        this.logger.debug('getRefreshToken request completed');
         return { success: response };
       },
       callback,
@@ -302,11 +297,11 @@ export default class AuthController {
 
         const dto = RefreshTokenDto.create({ refreshToken });
         await validateDto(dto);
-        this.logger.debug('Validation successful for adminRefresh', { refreshToken });
+        this.logger.debug('Validation successful for adminRefresh');
 
         const response = await this.adminRefreshUseCase.execute(dto);
 
-        this.logger.debug('adminRefresh request completed', { refreshToken });
+        this.logger.debug('adminRefresh request completed');
         return { success: response };
       },
       callback,
@@ -348,8 +343,12 @@ export default class AuthController {
         const dto = ForgotPasswordDto.create({ email });
         await validateDto(dto);
 
+        const { idempotencyKey } = getMetadataValues(call.metadata, {
+          idempotencyKey: 'idempotency-key',
+        });
+
         this.logger.debug('Validation successful for forgotPassword', { email });
-        const { link, user } = await this.forgotPasswordUseCase.execute(dto);
+        const { link, user } = await this.forgotPasswordUseCase.execute(dto, idempotencyKey!);
 
         return {
           success: {
@@ -373,7 +372,6 @@ export default class AuthController {
       async (span) => {
         const { token, confirmPassword, password } = call.request;
         span?.setAttributes?.({ token });
-        this.logger.info('resetPasswordRequest' + JSON.stringify(call.request, null, 2));
 
         const dto = ResetPasswordDto.create({ token, confirmPassword, password });
         await validateDto(dto);
