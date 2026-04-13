@@ -14,7 +14,7 @@ import { TracingService } from '@/infrastructure/observability/tracing/trace.ser
 import { LoggingService } from '@/infrastructure/observability/logging/logging.service';
 import { IAuthTokens } from '@/shared/types/auth.tokens';
 import { calculateRefreshTokenExpiryInMs, mapUserToToken } from '@/shared/utils/token-manager';
-import { ForbiddenError } from '@/shared/errors/forbidden.error';
+import { ForbiddenError } from '@/domain/errors/forbidden.error';
 
 @injectable()
 export default class LoginUserUseCaseImpl implements ILoginUserUseCase {
@@ -37,10 +37,9 @@ export default class LoginUserUseCaseImpl implements ILoginUserUseCase {
       });
 
       this.logger.debug(`Executing LoginUserUseCase for user with email: ${dto.email}`);
-      // Checks whether user exist with provided email
+
       const user = await this.userRepository.findByEmail(dto.email);
 
-      // Throws an error `UserNotFoundError`if user not exist with given email
       if (!user) {
         this.logger.warn(`User not found with email ${dto.email}`);
         throw new UserNotFoundError(
@@ -48,7 +47,6 @@ export default class LoginUserUseCaseImpl implements ILoginUserUseCase {
         );
       }
 
-      // Check if user is blocked
       if (user.isBlocked()) {
         this.logger.warn(`Blocked user attempted login: ${dto.email}`);
         throw new ForbiddenError('Your account is blocked. Please contact support for assistance.');
@@ -70,27 +68,22 @@ export default class LoginUserUseCaseImpl implements ILoginUserUseCase {
       }
       const tokenId = this.uuidService.generate();
 
-      // Generate access token with user data
       const accessToken = this.tokenService.generateAccessToken(mapUserToToken(user, tokenId));
 
-      // Generate refresh token with user data
       const refreshToken = this.tokenService.generateRefreshToken(
         mapUserToToken(
           user,
           tokenId,
-          // JWT expects expires in seconds
+
           calculateRefreshTokenExpiryInMs(dto.rememberMe) / 1000,
         ),
       );
 
-      // Mark user as active (after loggedIn)
-      // Mark user as login
       user.login();
 
       await Promise.all([
-        // Save status update to db
         this.userRepository.update(user.getId(), user),
-        // Create a token if token not exist with current userId else update.
+
         // this.tokenRepository.upsertToken(token),
       ]);
       this.logger.debug(

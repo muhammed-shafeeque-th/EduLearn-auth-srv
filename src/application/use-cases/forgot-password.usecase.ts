@@ -10,10 +10,11 @@ import ForgotPasswordDto from '../dtos/forgot-password.dto';
 import { ResetToken } from '@/domain/entity/reset-token';
 import IUUIDService from '../services/uuid.service';
 import { Time } from '@/shared/constants/time';
-import { IPasswordResetTokenRepository } from '@/domain/repository/reset-token.repository ';
+import { IPasswordResetTokenRepository } from '@/domain/repository/reset-token.repository';
 import { getEnvs } from '@/shared/utils/getEnv';
 import IEventPublisher from '../services/event-publisher.service';
-import { ForgotPasswordRequestEvent, KafkaTopics } from '@/shared/events';
+import { KafkaTopics } from '@/shared/events';
+import { ForgotPasswordRequestEvent } from '@/domain/events/types/notification-service.events';
 const { EDULEARN_FRONT_END_URL: frontEndUrl } = getEnvs({
   EDULEARN_FRONT_END_URL: 'http://localhost:9000',
 });
@@ -65,13 +66,16 @@ export default class ForgotPasswordUseCaseImpl implements IForgotPasswordUseCase
         {
           eventId: this.uuidService.generate(),
           eventType: 'ForgotPasswordRequestEvent',
-          expiryMinutes: this.linkExpiryInMinutes,
-          resetLink: resetLink,
-          requestSource: 'email',
           timestamp: Date.now(),
-          username: user.getFirstName(),
-          email: user.getEmail(),
-          userId: user.getId(),
+          source: 'auth-service',
+          payload: {
+            expiryMinutes: this.linkExpiryInMinutes,
+            resetLink: resetLink,
+            requestSource: 'email',
+            username: user.getFirstName(),
+            email: user.getEmail(),
+            userId: user.getId(),
+          },
         },
         user.getId(),
       );

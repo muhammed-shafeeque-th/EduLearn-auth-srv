@@ -1,7 +1,7 @@
 import { inject, injectable } from 'inversify';
 import { TYPES } from '@/shared/constants/identifiers';
 import IUserRepository from '@/domain/repository/user.repository';
-import UserNotFoundError from '@/shared/errors/user-not-found.error';
+import UserNotFoundError from '@/domain/errors/user-not-found.error';
 import { IChangePasswordUseCase } from '@/application/adaptors/change-password.inteface';
 import ChangePasswordDto from '@/application/dtos/change-password.dto';
 import IHashService from '@/application/services/hash.service';
@@ -50,7 +50,7 @@ export default class ChangePasswordUseCaseImpl implements IChangePasswordUseCase
 
       if (isSamePrevPassword) {
         throw new BadRequestError(
-          "new password and current password can't be the same, please select another strong password",
+          "new password and current password can't be the same, please choose another strong password",
         );
       }
       const hashedPassword = await this.hashService.hash(dto.newPassword);

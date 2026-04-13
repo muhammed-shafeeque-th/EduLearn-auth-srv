@@ -30,7 +30,6 @@ export default class LogoutUserUseCaseImpl implements ILogoutUserUseCase {
       // Checks whether user exist with provided email
       const user = await this.userRepository.findById(dto.userId);
 
-      // Creates user if user not already exists
       if (!user) {
         this.logger.error(`user not found with Id ${dto.userId}`);
         throw new UserNotFoundError('user not found with provided userId');
@@ -39,7 +38,6 @@ export default class LogoutUserUseCaseImpl implements ILogoutUserUseCase {
       // Mark user status as not active
       user.deactivate();
 
-      // Save user to db
       await this.userRepository.update(user.getId(), user);
       // await this.tokenRepository.updateToken(user.getId(), user);
 
