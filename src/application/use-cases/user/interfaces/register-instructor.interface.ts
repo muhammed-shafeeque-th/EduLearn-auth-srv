@@ -1,4 +1,4 @@
-import RegisterInstructorEventDto from '../dtos/register-instructor-event.dto';
+import RegisterInstructorEventDto from '../../../dtos/register-instructor-event.dto';
 
 export default interface IRegisteredInstructorUseCase {
   /**

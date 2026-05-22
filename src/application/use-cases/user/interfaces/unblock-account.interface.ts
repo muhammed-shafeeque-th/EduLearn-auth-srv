@@ -1,4 +1,4 @@
-import AccountUnblockedDto from '../dtos/instructor-unblocked.event-dto';
+import AccountUnblockedDto from '../../../dtos/instructor-unblocked.event-dto';
 
 /**
  * Interface for the UserUnblocked use case.

@@ -1,5 +1,5 @@
 import User from '@/domain/entity/user';
-import ForgotPasswordDto from '../dtos/forgot-password.dto';
+import ForgotPasswordDto from '../../../dtos/forgot-password.dto';
 
 /**
  * Interface representing the use case to fetch all users logged into

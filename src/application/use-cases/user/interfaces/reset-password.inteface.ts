@@ -1,4 +1,4 @@
-import ResetPasswordDto from '../dtos/reset-password.dto';
+import ResetPasswordDto from '../../../dtos/reset-password.dto';
 
 /**
  * Interface representing the use case to fetch all users logged into
