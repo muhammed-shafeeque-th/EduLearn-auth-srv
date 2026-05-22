@@ -1,47 +1,47 @@
 import { inject, injectable } from 'inversify';
-import IRegisterUserUseCase from '../adaptors/register-user.interface';
+import IRegisterUserUseCase from '../interfaces/register-user.interface';
 import { TYPES } from '@/shared/constants/identifiers';
-import IHashService from '../services/hash.service';
+import IHashService from '../../../adaptors/hash.service';
 import IUserRepository from '@/domain/repository/user.repository';
-import IUUIDService from '../services/uuid.service';
-import RegisterUserDto from '../dtos/register-user.dto';
+import IUUIDService from '../../../adaptors/uuid.service';
+import RegisterUserDto from '../../../dtos/register-user.dto';
 import EmailAlreadyExist from '@/domain/errors/user-already-exist.error';
 import User, { AuthType } from '@/domain/entity/user';
-import { ICacheService } from '../services/cache.service';
-import { TracingService } from '@/infrastructure/observability/tracing/trace.service';
-import { LoggingService } from '@/infrastructure/observability/logging/logging.service';
+import { ICacheService } from '../../../adaptors/cache.service';
 import { KafkaTopics } from '@/shared/events';
-import IEventPublisher from '../services/event-publisher.service';
+import IEventPublisher from '../../../adaptors/event-publisher.service';
 import { OtpRequestEvent } from '@/domain/events/types/notification-service.events';
+import { ILoggerService } from '../../../adaptors/logger.service';
+import { ITraceService } from '../../../adaptors/trace.service';
 
 @injectable()
 export default class RegisterUserUseCaseImpl implements IRegisterUserUseCase {
   public constructor(
-    @inject(TYPES.IHashService) private readonly hashService: IHashService,
-    @inject(TYPES.IUserRepository) private readonly userRepository: IUserRepository,
-    @inject(TYPES.IUUIDService) private readonly uuidService: IUUIDService,
-    @inject(TYPES.IEventPublisherService) private readonly eventPublisher: IEventPublisher,
+    @inject(TYPES.IHashService) private readonly _hashService: IHashService,
+    @inject(TYPES.IUserRepository) private readonly _userRepository: IUserRepository,
+    @inject(TYPES.IUUIDService) private readonly _uuidService: IUUIDService,
+    @inject(TYPES.IEventPublisherService) private readonly _eventPublisher: IEventPublisher,
     @inject(TYPES.ICacheService) private readonly cacheService: ICacheService,
-    @inject(TYPES.TracingService)
-    private readonly tracer: TracingService,
-    @inject(TYPES.LoggingService)
-    private readonly logger: LoggingService,
+    @inject(TYPES.LoggerService)
+    private readonly _logger: ILoggerService,
+    @inject(TYPES.TraceService)
+    private readonly _tracer: ITraceService,
   ) {}
   public async execute(dto: RegisterUserDto): Promise<User> {
-    const span = this.tracer.startSpan('RegisterUserUserCaseImpl.execute', {
+    const span = this._tracer.startSpan('RegisterUserUserCaseImpl.execute', {
       'user.email': dto.email,
     });
     try {
-      const alreadyExist = await this.userRepository.findByEmail(dto.email);
+      const alreadyExist = await this._userRepository.findByEmail(dto.email);
 
       // Throws an error if user already exist with given email
       if (alreadyExist) {
-        this.logger.debug(`User exist with the give email: ${dto.email}`);
+        this._logger.debug(`User exist with the give email: ${dto.email}`);
         span.setAttribute('email.exist', true);
         throw new EmailAlreadyExist();
       }
 
-      this.logger.debug(`User not exist with the give email: ${dto.email}`);
+      this._logger.debug(`User not exist with the give email: ${dto.email}`);
       span.setAttribute('email.exist', false);
 
       // Check for idempotency
@@ -66,12 +66,12 @@ export default class RegisterUserUseCaseImpl implements IRegisterUserUseCase {
       let hashedPassword: undefined | string;
 
       if (dto.authType === AuthType.EMAIL) {
-        hashedPassword = await this.hashService.hash(dto.password);
-        this.logger.debug('User password hashed for user : ' + dto.email);
+        hashedPassword = await this._hashService.hash(dto.password);
+        this._logger.debug('User password hashed for user : ' + dto.email);
       }
 
       // Generate UUID for userId, so to avoid distributed id conflict
-      const userUuid = this.uuidService.generate();
+      const userUuid = this._uuidService.generate();
 
       const user = User.create({
         id: userUuid,
@@ -83,18 +83,18 @@ export default class RegisterUserUseCaseImpl implements IRegisterUserUseCase {
         avatar: dto.avatar,
       });
 
-      this.logger.debug('Initiated user data update to redis for temporary storage', {
+      this._logger.debug('Initiated user data update to redis for temporary storage', {
         email: dto.email,
       });
 
       await this.cacheService.set(user.getEmail().toString(), user);
-      this.logger.debug('Completed user data update to redis for temporary storage', {
+      this._logger.debug('Completed user data update to redis for temporary storage', {
         email: dto.email,
       });
-      // await this.eventPublisher.publish<UserRegisterEvent>(
+      // await this._eventPublisher.publish<UserRegisterEvent>(
       //   KafkaTopics.,
       //   {
-      //     eventId: this.uuidService.generate(),
+      //     eventId: this._uuidService.generate(),
       //     eventType: 'UserUpdatedEvent',
       //     timestamp: Date.now(),
       //     email: user.getEmail(),
@@ -108,10 +108,10 @@ export default class RegisterUserUseCaseImpl implements IRegisterUserUseCase {
       //   },
       //   user.getId(),
       // );
-      await this.eventPublisher.publish<OtpRequestEvent>(
+      await this._eventPublisher.publish<OtpRequestEvent>(
         KafkaTopics.AuthOTPRequested,
         {
-          eventId: this.uuidService.generate(),
+          eventId: this._uuidService.generate(),
           eventType: 'OtpRequestEvent',
           timestamp: Date.now(),
           source: 'auth-service',
@@ -125,15 +125,15 @@ export default class RegisterUserUseCaseImpl implements IRegisterUserUseCase {
         user.getId(),
       );
 
-      this.logger.debug(`user has been registered with email: ${dto.email}`);
+      this._logger.debug(`user has been registered with email: ${dto.email}`);
       span.setAttribute('registered.email', dto.email);
       return user;
     } catch (error) {
-      this.logger.warn(`Error registering user  email: ${dto.email}`, { error });
-      this.tracer.recordException(span, error);
+      this._logger.warn(`Error registering user  email: ${dto.email}`, { error });
+      this._tracer.recordException(span, error);
       throw error;
     } finally {
-      this.tracer.endSpan(span);
+      this._tracer.endSpan(span);
     }
   }
 }

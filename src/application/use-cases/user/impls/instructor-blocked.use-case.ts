@@ -1,43 +1,43 @@
 import { inject, injectable } from 'inversify';
 import { TYPES } from '@/shared/constants/identifiers';
 import IAuthUserRepository from '@/domain/repository/user.repository';
-import IEventPublisher from '../services/event-publisher.service';
-import { LoggingService } from '@/infrastructure/observability/logging/logging.service';
-import { TracingService } from '@/infrastructure/observability/tracing/trace.service';
+import IEventPublisher from '../../../adaptors/event-publisher.service';
 import UserNotFoundError from '@/domain/errors/user-not-found.error';
-import { IInstructorBlockedUseCase } from '../adaptors/instructor-blocked.interface';
-import InstructorBlockedDto from '../dtos/instructor-blocked.event-dto';
+import { IInstructorBlockedUseCase } from '../interfaces/instructor-blocked.interface';
+import InstructorBlockedDto from '../../../dtos/instructor-blocked.event-dto';
 import { UserRoles, UserStatus } from '@/domain/entity/user';
+import { ILoggerService } from '../../../adaptors/logger.service';
+import { ITraceService } from '../../../adaptors/trace.service';
 
 @injectable()
 export default class InstructorBlockedUseCaseImpl implements IInstructorBlockedUseCase {
   public constructor(
     @inject(TYPES.IUserRepository)
-    private readonly userRepository: IAuthUserRepository,
+    private readonly _userRepository: IAuthUserRepository,
     @inject(TYPES.IEventPublisherService)
-    private readonly eventPublisher: IEventPublisher,
-    @inject(TYPES.LoggingService)
-    private readonly logger: LoggingService,
-    @inject(TYPES.TracingService)
-    private readonly tracer: TracingService,
+    private readonly _eventPublisher: IEventPublisher,
+    @inject(TYPES.LoggerService)
+    private readonly _logger: ILoggerService,
+    @inject(TYPES.TraceService)
+    private readonly _tracer: ITraceService,
   ) {}
 
   public async execute(dto: InstructorBlockedDto): Promise<void> {
-    return this.tracer.startActiveSpan('InstructorBlockedUseCaseImpl.execute', async (span) => {
+    return this._tracer.startActiveSpan('InstructorBlockedUseCaseImpl.execute', async (span) => {
       const { userId } = dto.payload;
 
       span.setAttributes({ userId: userId });
 
-      this.logger.debug(`Executing InstructorBlockedUseCaseImpl for user: ${userId}`);
-      const user = await this.userRepository.findById(userId);
+      this._logger.debug(`Executing InstructorBlockedUseCaseImpl for user: ${userId}`);
+      const user = await this._userRepository.findById(userId);
 
       if (!user) {
-        this.logger.warn(`User not found while attempting to block: ${userId}`);
+        this._logger.warn(`User not found while attempting to block: ${userId}`);
         throw new UserNotFoundError(userId);
       }
 
       if (user.isRoleBlocked(UserRoles.INSTRUCTOR)) {
-        this.logger.warn('user instructor role already in blocked state');
+        this._logger.warn('user instructor role already in blocked state');
         return;
       }
 
@@ -52,9 +52,9 @@ export default class InstructorBlockedUseCaseImpl implements IInstructorBlockedU
 
       user.blockRole(UserRoles.INSTRUCTOR);
 
-      await this.userRepository.update(userId, user);
+      await this._userRepository.update(userId, user);
 
-      this.logger.debug(`Instructor successfully blocked: ${userId}`);
+      this._logger.debug(`Instructor successfully blocked: ${userId}`);
     });
   }
 }

@@ -1,39 +1,39 @@
 import { inject, injectable } from 'inversify';
 import { TYPES } from '@/shared/constants/identifiers';
 import IAuthUserRepository from '@/domain/repository/user.repository';
-import { LoggingService } from '@/infrastructure/observability/logging/logging.service';
-import { TracingService } from '@/infrastructure/observability/tracing/trace.service';
 import UserNotFoundError from '@/domain/errors/user-not-found.error';
-import { IInstructorUnBlockedUseCase } from '../adaptors/instructor-unblocked.interface';
-import InstructorUnblockedDto from '../dtos/instructor-unblocked.event-dto';
+import { IInstructorUnBlockedUseCase } from '../interfaces/instructor-unblocked.interface';
+import InstructorUnblockedDto from '../../../dtos/instructor-unblocked.event-dto';
 import { UserRoles, UserStatus } from '@/domain/entity/user';
+import { ILoggerService } from '../../../adaptors/logger.service';
+import { ITraceService } from '../../../adaptors/trace.service';
 
 @injectable()
 export default class InstructorUnblockedUseCaseImpl implements IInstructorUnBlockedUseCase {
   public constructor(
     @inject(TYPES.IUserRepository)
-    private readonly userRepository: IAuthUserRepository,
-    @inject(TYPES.LoggingService)
-    private readonly logger: LoggingService,
-    @inject(TYPES.TracingService)
-    private readonly tracer: TracingService,
+    private readonly _userRepository: IAuthUserRepository,
+    @inject(TYPES.LoggerService)
+    private readonly _logger: ILoggerService,
+    @inject(TYPES.TraceService)
+    private readonly _tracer: ITraceService,
   ) {}
 
   public async execute(dto: InstructorUnblockedDto): Promise<void> {
-    return this.tracer.startActiveSpan('InstructorUnblockedUseCaseImpl.execute', async (span) => {
+    return this._tracer.startActiveSpan('InstructorUnblockedUseCaseImpl.execute', async (span) => {
       const { userId } = dto.payload;
       span.setAttributes({ userId: userId });
 
-      this.logger.debug(`Executing InstructorUnblockedUseCaseImpl for user: ${userId}`);
-      const user = await this.userRepository.findById(userId);
+      this._logger.debug(`Executing InstructorUnblockedUseCaseImpl for user: ${userId}`);
+      const user = await this._userRepository.findById(userId);
 
       if (!user) {
-        this.logger.warn(`instructor not found while attempting to unblock: ${userId}`);
+        this._logger.warn(`instructor not found while attempting to unblock: ${userId}`);
         throw new UserNotFoundError(userId);
       }
 
       if (!user.isRoleBlocked(UserRoles.INSTRUCTOR)) {
-        this.logger.warn(`instructor not blocked while attempting to unblock: ${userId}`);
+        this._logger.warn(`instructor not blocked while attempting to unblock: ${userId}`);
         return;
       }
 
@@ -46,9 +46,9 @@ export default class InstructorUnblockedUseCaseImpl implements IInstructorUnBloc
       }
       user.unblockRole(UserRoles.INSTRUCTOR);
 
-      await this.userRepository.update(userId, user);
+      await this._userRepository.update(userId, user);
 
-      this.logger.debug(`User successfully unblocked: ${userId}`);
+      this._logger.debug(`User successfully unblocked: ${userId}`);
     });
   }
 }

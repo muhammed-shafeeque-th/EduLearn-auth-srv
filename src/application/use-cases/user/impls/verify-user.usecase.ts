@@ -1,29 +1,29 @@
 import { inject, injectable } from 'inversify';
 import { TYPES } from '@/shared/constants/identifiers';
-import IHashService from '../services/hash.service';
+import IHashService from '../../../adaptors/hash.service';
 import IUserRepository from '@/domain/repository/user.repository';
-import IUUIDService from '../services/uuid.service';
+import IUUIDService from '../../../adaptors/uuid.service';
 import UserNotFoundError from '@/shared/errors/not-found.error';
 import { IRefreshTokenRepository } from '@/domain/repository/refresh-token.repository';
-import ITokenService from '../services/token.service';
+import ITokenService from '../../../adaptors/token.service';
 import { RefreshToken } from '@/domain/entity/refresh-token';
-import { IVerifyUserUseCase } from '@/application/adaptors/verify-user.interface';
+import { IVerifyUserUseCase } from '@/application/use-cases/user/interfaces/verify-user.interface';
 import VerifyUserDto from '@/application/dtos/verify-user.dto';
-import { ICacheService } from '@/application/services/cache.service';
+import { ICacheService } from '@/application/adaptors/cache.service';
 import User from '@/domain/entity/user';
-import { TracingService } from '@/infrastructure/observability/tracing/trace.service';
-import { LoggingService } from '@/infrastructure/observability/logging/logging.service';
 import { IAuthTokens } from '@/shared/types/auth.tokens';
-import IEventPublisher from '../services/event-publisher.service';
+import IEventPublisher from '../../../adaptors/event-publisher.service';
 import { KafkaTopics } from '@/shared/events';
 import { calculateRefreshTokenExpiryInMs, mapUserToToken } from '@/shared/utils/token-manager';
-import { ITemplateRenderer } from '../services/template-renderer';
+import { ITemplateRenderer } from '../../../adaptors/template-renderer';
 import { KafkaEventFactory } from '@/domain/events/entity/event-factory';
 import { EmailNotificationEvent } from '@/domain/events/types/notification-service.events';
 import { InAppNotificationEvent } from '@/domain/events/types/in-app-notification.event';
 import { getEnvs } from '@/shared/utils/getEnv';
 import { WelcomeEmailTemplateData } from '@/shared/types';
 import { UserAccountCreatedEvent } from '@/domain/events/types/user-lifecycle.events';
+import { ILoggerService } from '../../../adaptors/logger.service';
+import { ITraceService } from '../../../adaptors/trace.service';
 
 const config = getEnvs({
   COMPANY_NAME: '',
@@ -42,33 +42,33 @@ export default class VerifyUserUseCaseImpl implements IVerifyUserUseCase {
   private readonly templateName = 'welcome-email.hbs';
 
   public constructor(
-    @inject(TYPES.IHashService) private readonly hashService: IHashService,
-    @inject(TYPES.IUserRepository) private readonly userRepository: IUserRepository,
-    @inject(TYPES.IUUIDService) private readonly uuidService: IUUIDService,
-    @inject(TYPES.ITokenService) private readonly tokenService: ITokenService,
+    @inject(TYPES.IHashService) private readonly _hashService: IHashService,
+    @inject(TYPES.IUserRepository) private readonly _userRepository: IUserRepository,
+    @inject(TYPES.IUUIDService) private readonly _uuidService: IUUIDService,
+    @inject(TYPES.ITokenService) private readonly _tokenService: ITokenService,
     @inject(TYPES.ITemplateRenderer) private readonly renderer: ITemplateRenderer,
     @inject(TYPES.ICacheService) private readonly cacheService: ICacheService,
-    @inject(TYPES.IEventPublisherService) private readonly eventPublisher: IEventPublisher,
+    @inject(TYPES.IEventPublisherService) private readonly _eventPublisher: IEventPublisher,
     @inject(TYPES.IRefreshTokenRepository)
-    private readonly tokenRepository: IRefreshTokenRepository,
-    @inject(TYPES.TracingService)
-    private readonly tracer: TracingService,
-    @inject(TYPES.LoggingService)
-    private readonly logger: LoggingService,
+    private readonly _tokenRepository: IRefreshTokenRepository,
+    @inject(TYPES.LoggerService)
+    private readonly _logger: ILoggerService,
+    @inject(TYPES.TraceService)
+    private readonly _tracer: ITraceService,
   ) {}
 
   public async execute(dto: VerifyUserDto): Promise<IAuthTokens> {
-    return this.tracer.startActiveSpan('VerifyUserUseCaseImpl.execute', async (span) => {
+    return this._tracer.startActiveSpan('VerifyUserUseCaseImpl.execute', async (span) => {
       span.setAttributes({ email: dto.email });
-      this.logger.debug(`Executing VerifyUserUseCase for user with email: ${dto.email}`);
+      this._logger.debug(`Executing VerifyUserUseCase for user with email: ${dto.email}`);
 
-      const userExist = await this.userRepository.findByEmail(dto.email);
+      const userExist = await this._userRepository.findByEmail(dto.email);
       if (userExist) return this.generateTokens(userExist);
 
       // Retrieve user from cache.
       const userCache = await this.cacheService.get<any>(dto.email);
       if (!userCache) {
-        this.logger.debug('User not found in cache for verification');
+        this._logger.debug('User not found in cache for verification');
         throw new UserNotFoundError(
           'User not found with provided email while verification, please try again',
         );
@@ -89,10 +89,10 @@ export default class VerifyUserUseCaseImpl implements IVerifyUserUseCase {
       // Mark as verified
       user.verify();
 
-      const created = await this.userRepository.create(user);
+      const created = await this._userRepository.create(user);
 
       if (!created) {
-        this.logger.error('User verification not completed: user could not be created');
+        this._logger.error('User verification not completed: user could not be created');
         throw new Error("Can't create user with user details");
       }
 
@@ -104,7 +104,7 @@ export default class VerifyUserUseCaseImpl implements IVerifyUserUseCase {
       // Issue tokens for the verified user
       const tokens = await this.generateTokens(user);
 
-      this.logger.debug(
+      this._logger.debug(
         `Successfully completed the verify use-case for user with email: ${dto.email}`,
       );
       return tokens;
@@ -142,10 +142,10 @@ export default class VerifyUserUseCaseImpl implements IVerifyUserUseCase {
    * Publishes the UserCreated event to Kafka.
    */
   private async publishUserCreatedEvent(user: User): Promise<void> {
-    await this.eventPublisher.publish<UserAccountCreatedEvent>(
+    await this._eventPublisher.publish<UserAccountCreatedEvent>(
       KafkaTopics.AuthUserCreated,
       {
-        eventId: this.uuidService.generate(),
+        eventId: this._uuidService.generate(),
         eventType: 'UserAccountCreatedEvent',
         timestamp: Date.now(),
         source: 'auth-service',
@@ -172,7 +172,7 @@ export default class VerifyUserUseCaseImpl implements IVerifyUserUseCase {
     const template = await this.renderer.render(this.templateName, emailData);
 
     // Fire-and-forget, but log errors
-    this.eventPublisher
+    this._eventPublisher
       .publish<EmailNotificationEvent>(
         KafkaTopics.NotificationEmailChannel,
         KafkaEventFactory.createWelcomeEmail(
@@ -184,17 +184,17 @@ export default class VerifyUserUseCaseImpl implements IVerifyUserUseCase {
         user.getId(),
       )
       .catch((error) => {
-        this.logger.error('Error while publishing EmailNotification event', { error });
+        this._logger.error('Error while publishing EmailNotification event', { error });
       });
 
-    this.eventPublisher
+    this._eventPublisher
       .publish<InAppNotificationEvent>(
         KafkaTopics.NotificationInAppChannel,
         KafkaEventFactory.createWelcomeNotification(user.getId(), 'Auth').toEvent(),
         user.getId(),
       )
       .catch((error) => {
-        this.logger.error('Error while publishing InAppNotification event', { error });
+        this._logger.error('Error while publishing InAppNotification event', { error });
       });
   }
 
@@ -202,14 +202,14 @@ export default class VerifyUserUseCaseImpl implements IVerifyUserUseCase {
    * Generates access & refresh tokens and persists refresh token securely.
    */
   private async generateTokens(user: User): Promise<IAuthTokens> {
-    const tokenId = this.uuidService.generate();
+    const tokenId = this._uuidService.generate();
     const userTokenData = mapUserToToken(user, tokenId);
 
-    const accessToken = this.tokenService.generateAccessToken(userTokenData);
-    const refreshToken = this.tokenService.generateRefreshToken(userTokenData);
+    const accessToken = this._tokenService.generateAccessToken(userTokenData);
+    const refreshToken = this._tokenService.generateRefreshToken(userTokenData);
 
     // Secure the refresh token with hashing
-    const hashedToken = await this.hashService.hash(refreshToken);
+    const hashedToken = await this._hashService.hash(refreshToken);
 
     const refreshTokenEntity = new RefreshToken(
       tokenId,
@@ -218,8 +218,8 @@ export default class VerifyUserUseCaseImpl implements IVerifyUserUseCase {
       new Date(Date.now() + calculateRefreshTokenExpiryInMs()),
     );
 
-    // Upsert refresh token in repo
-    await this.tokenRepository.upsertToken(refreshTokenEntity);
+    // Upsert refresh token in _repo
+    await this._tokenRepository.upsertToken(refreshTokenEntity);
 
     return { accessToken, refreshToken };
   }

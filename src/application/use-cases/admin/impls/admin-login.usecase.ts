@@ -1,18 +1,18 @@
 import { inject, injectable } from 'inversify';
 import { TYPES } from '@/shared/constants/identifiers';
-import IUUIDService from '../../services/uuid.service';
-import LoginUserDto from '../../dtos/login-user.dto';
+import IUUIDService from '../../../adaptors/uuid.service';
+import LoginUserDto from '../../../dtos/login-user.dto';
 import UserNotFoundError from '@/shared/errors/not-found.error';
 import BadRequestError from '@/shared/errors/bad-request.error';
-import ITokenService from '../../services/token.service';
-import { TracingService } from '@/infrastructure/observability/tracing/trace.service';
-import { LoggingService } from '@/infrastructure/observability/logging/logging.service';
+import ITokenService from '../../../adaptors/token.service';
 import { IAuthTokens } from '@/shared/types/auth.tokens';
 import { calculateRefreshTokenExpiryInMs } from '@/shared/utils/token-manager';
-import IAdminLoginUseCase from '../../adaptors/admin-login.interface';
+import IAdminLoginUseCase from '../interfaces/admin-login.interface';
 import { getEnvs } from '@/shared/utils/getEnv';
 import { UserRoles } from '@/domain/entity/user';
 import { RolePermissions } from '@/shared/types';
+import { ILoggerService } from '@/application/adaptors/logger.service';
+import { ITraceService } from '@/application/adaptors/trace.service';
 
 const config = getEnvs({
   AUTH_ADMIN_EMAIL: '',
@@ -24,21 +24,21 @@ const config = getEnvs({
 export default class AdminLoginUseCaseImpl implements IAdminLoginUseCase {
   public constructor(
     @inject(TYPES.IUUIDService) private readonly uuidService: IUUIDService,
-    @inject(TYPES.ITokenService) private readonly tokenService: ITokenService,
-    @inject(TYPES.TracingService)
-    private readonly tracer: TracingService,
-    @inject(TYPES.LoggingService)
-    private readonly logger: LoggingService,
+    @inject(TYPES.ITokenService) private readonly _tokenService: ITokenService,
+    @inject(TYPES.LoggerService)
+    private readonly _logger: ILoggerService,
+    @inject(TYPES.TraceService)
+    private readonly _tracer: ITraceService,
   ) {}
 
   public async execute(dto: LoginUserDto): Promise<IAuthTokens> {
-    return await this.tracer.startActiveSpan('AdminLoginUseCaseImpl.execute', async (span) => {
+    return await this._tracer.startActiveSpan('AdminLoginUseCaseImpl.execute', async (span) => {
       span.setAttributes({ email: dto.email });
-      this.logger.debug(`Executing AdminLoginUseCaseImpl for user with email: ${dto.email}`);
+      this._logger.debug(`Executing AdminLoginUseCaseImpl for user with email: ${dto.email}`);
 
       // Check whether user exists with provided email
       if (dto.email !== config.AUTH_ADMIN_EMAIL) {
-        this.logger.warn(`User not found with email ${dto.email}`);
+        this._logger.warn(`User not found with email ${dto.email}`);
         throw new UserNotFoundError(
           'user not found with provided email, please check your email and try again',
         );
@@ -48,7 +48,7 @@ export default class AdminLoginUseCaseImpl implements IAdminLoginUseCase {
       const isPasswordValid = config.AUTH_ADMIN_PASSWORD === dto.password;
 
       if (!isPasswordValid) {
-        this.logger.warn('Admin password does not match configured admin password.');
+        this._logger.warn('Admin password does not match configured admin password.');
         throw new BadRequestError('Invalid password. Please try again.');
       }
 
@@ -63,17 +63,17 @@ export default class AdminLoginUseCaseImpl implements IAdminLoginUseCase {
         permissions: [...RolePermissions.admin, ...RolePermissions.instructor],
       };
 
-      const accessToken = this.tokenService.generateAccessToken({
+      const accessToken = this._tokenService.generateAccessToken({
         ...tokenPayload,
         expiry: calculateRefreshTokenExpiryInMs(true) / 1000,
       });
-      const refreshToken = this.tokenService.generateRefreshToken({
+      const refreshToken = this._tokenService.generateRefreshToken({
         ...tokenPayload,
         keyId: tokenId,
         expiry: calculateRefreshTokenExpiryInMs(true) / 1000,
       });
 
-      this.logger.debug(
+      this._logger.debug(
         'Successfully completed the login use-case process for user with email: ' + dto.email,
       );
 

@@ -1,38 +1,38 @@
 import { inject, injectable } from 'inversify';
 import { TYPES } from '@/shared/constants/identifiers';
 import IAuthUserRepository from '@/domain/repository/user.repository';
-import IEventPublisher from '../services/event-publisher.service';
-import { LoggingService } from '@/infrastructure/observability/logging/logging.service';
-import { TracingService } from '@/infrastructure/observability/tracing/trace.service';
+import IEventPublisher from '../../../adaptors/event-publisher.service';
 import UserNotFoundError from '@/domain/errors/user-not-found.error';
-import { IAccountBlockedUseCase } from '../adaptors/block-account.interface';
-import AccountBlockedDto from '../dtos/account-blocked.event-dto';
+import { IAccountBlockedUseCase } from '../interfaces/block-account.interface';
+import AccountBlockedDto from '../../../dtos/account-blocked.event-dto';
 import { UserRoles, UserStatus } from '@/domain/entity/user';
+import { ILoggerService } from '../../../adaptors/logger.service';
+import { ITraceService } from '../../../adaptors/trace.service';
 
 @injectable()
 export default class AccountBlockedUseCaseImpl implements IAccountBlockedUseCase {
   public constructor(
     @inject(TYPES.IUserRepository)
-    private readonly userRepository: IAuthUserRepository,
+    private readonly _userRepository: IAuthUserRepository,
     @inject(TYPES.IEventPublisherService)
-    private readonly eventPublisher: IEventPublisher,
-    @inject(TYPES.LoggingService)
-    private readonly logger: LoggingService,
-    @inject(TYPES.TracingService)
-    private readonly tracer: TracingService,
+    private readonly _eventPublisher: IEventPublisher,
+    @inject(TYPES.LoggerService)
+    private readonly _logger: ILoggerService,
+    @inject(TYPES.TraceService)
+    private readonly _tracer: ITraceService,
   ) {}
 
   public async execute(dto: AccountBlockedDto): Promise<void> {
-    return this.tracer.startActiveSpan('AccountBlockedUseCaseImpl.execute', async (span) => {
+    return this._tracer.startActiveSpan('AccountBlockedUseCaseImpl.execute', async (span) => {
       const { userId } = dto.payload;
 
       span.setAttributes({ userId: userId });
 
-      this.logger.debug(`Executing UserBlockedUseCase for user: ${userId}`);
-      const user = await this.userRepository.findById(userId);
+      this._logger.debug(`Executing UserBlockedUseCase for user: ${userId}`);
+      const user = await this._userRepository.findById(userId);
 
       if (!user) {
-        this.logger.warn(`User not found while attempting to block: ${userId}`);
+        this._logger.warn(`User not found while attempting to block: ${userId}`);
         throw new UserNotFoundError(userId);
       }
 
@@ -47,9 +47,9 @@ export default class AccountBlockedUseCaseImpl implements IAccountBlockedUseCase
         user.block();
       }
 
-      await this.userRepository.update(userId, user);
+      await this._userRepository.update(userId, user);
 
-      this.logger.debug(`User successfully blocked: ${userId}`);
+      this._logger.debug(`User successfully blocked: ${userId}`);
     });
   }
 }
