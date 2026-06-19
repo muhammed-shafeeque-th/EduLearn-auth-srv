@@ -1,4 +1,4 @@
-import IHashService from '@/application/services/hash.service';
+import IHashService from '@/application/adaptors/hash.service';
 import bcrypt from 'bcrypt';
 import { injectable } from 'inversify';
 

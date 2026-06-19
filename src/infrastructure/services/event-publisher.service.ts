@@ -1,4 +1,4 @@
-import IEventPublisher from '@/application/services/event-publisher.service';
+import IEventPublisher from '@/application/adaptors/event-publisher.service';
 import { KafkaPublisher } from '../kafka/kafka.publisher';
 import { inject, injectable } from 'inversify';
 import { TYPES } from '@/shared/constants/identifiers';
