@@ -1,10 +1,10 @@
 import { injectable } from 'inversify';
-import { LoggingService } from '../observability/logging/logging.service';
+import { LoggerService } from '../observability/logger/logger.service';
 import { KafkaClient } from './kafka.client';
 
 @injectable()
 export class KafkaPublisher {
-  private readonly logger = LoggingService.getInstance();
+  private readonly logger = LoggerService.getInstance();
   private static instance: KafkaPublisher;
 
   private constructor(private readonly kafkaClient: KafkaClient) {}

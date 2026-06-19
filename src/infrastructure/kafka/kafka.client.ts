@@ -10,10 +10,10 @@ import { SchemaRegistry, SchemaType } from '@kafkajs/confluent-schema-registry';
 import { KafkaConfig, DeserializedMessage, EventPatternMetadata } from './kafka.types';
 
 import { getEventPatterns } from './decorators.kafka';
-import { LoggingService } from '../observability/logging/logging.service';
+import { LoggerService } from '../observability/logger/logger.service';
 
 export class KafkaClient {
-  private readonly logger = LoggingService.getInstance('KafkaClient');
+  private readonly logger = LoggerService.getInstance('KafkaClient');
   private kafka: Kafka;
   private producer: Producer;
   private consumer: Consumer;
@@ -38,7 +38,6 @@ export class KafkaClient {
         },
       },
     });
-    // this.logger.info('kafka  config: ' + JSON.stringify(this.config));
     this.producer = this.kafka.producer(this.config.producer);
     this.consumer = this.kafka.consumer(this.config.consumer);
 
