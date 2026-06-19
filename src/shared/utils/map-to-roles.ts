@@ -1,6 +1,6 @@
-import { UserRoles } from '../types/user-types';
+import { UserRoles } from '@/domain/entity/user';
 
-export const mapToRoles = (role: string) => {
+export const mapToRoles = (role: string): UserRoles => {
   switch (role) {
     case UserRoles.ADMIN:
       return UserRoles.ADMIN;

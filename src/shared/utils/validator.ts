@@ -1,4 +1,4 @@
-import { ValidationError } from '@/shared/errors/validation.error';
+import { ValidationError } from '@/domain/errors/validation.error';
 import { plainToInstance } from 'class-transformer';
 import { validate, ValidatorOptions, ValidationError as InvalidError } from 'class-validator';
 
