@@ -1,14 +1,14 @@
 {
-  "name": "user",
+  "name": "auth",
   "version": "1.0.0",
-  "description": "EduLearn user service",
+  "description": "EduLearn auth service",
   "main": "index.ts",
   "author": "muhammed shafeeque",
   "license": "MIT",
   "scripts": {
     "start": "node dist/index.js",
     "dev": "ts-node-dev --require tsconfig-paths/register --respawn --transpile-only src/index.ts",
-    "build": "npm run clean && tsc && tsc-alias",
+    "build": "npm run clean && tsc -p tsconfig.build.json && tsc-alias -p tsconfig.build.json",
     "proto:gen": "npx protoc --plugin=protoc-gen-ts_proto=\"D:\\Edulearn\\api-gateway\\node_modules\\.bin\\protoc-gen-ts_proto.cmd\" --ts_proto_out=./src/infrastructure/gRPC/generated --ts_proto_opt=outputServices=grpc-js,esModuleInterop=true -I ./proto ./proto/*.proto",
     "test": "jest",
     "test:watch": "jest --watch",
