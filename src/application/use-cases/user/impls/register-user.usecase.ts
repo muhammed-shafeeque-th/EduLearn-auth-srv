@@ -1,18 +1,18 @@
 import { inject, injectable } from 'inversify';
 import IRegisterUserUseCase from '../interfaces/register-user.interface';
 import { TYPES } from '@/shared/constants/identifiers';
-import IHashService from '../../../adaptors/hash.service';
+import IHashService from '@/application/adaptors/hash.service';
 import IUserRepository from '@/domain/repository/user.repository';
-import IUUIDService from '../../../adaptors/uuid.service';
-import RegisterUserDto from '../../../dtos/register-user.dto';
+import IUUIDService from '@/application/adaptors/uuid.service';
+import RegisterUserDto from '@/application/dtos/register-user.dto';
 import EmailAlreadyExist from '@/domain/errors/user-already-exist.error';
 import User, { AuthType } from '@/domain/entity/user';
-import { ICacheService } from '../../../adaptors/cache.service';
+import { ICacheService } from '@/application/adaptors/cache.service';
 import { KafkaTopics } from '@/shared/events';
-import IEventPublisher from '../../../adaptors/event-publisher.service';
+import IEventPublisher from '@/application/adaptors/event-publisher.service';
 import { OtpRequestEvent } from '@/domain/events/types/notification-service.events';
-import { ILoggerService } from '../../../adaptors/logger.service';
-import { ITraceService } from '../../../adaptors/trace.service';
+import { ILoggerService } from '@/application/adaptors/logger.service';
+import { ITraceService } from '@/application/adaptors/trace.service';
 
 @injectable()
 export default class RegisterUserUseCaseImpl implements IRegisterUserUseCase {

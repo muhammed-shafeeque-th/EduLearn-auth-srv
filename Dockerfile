@@ -39,7 +39,10 @@ COPY --from=builder --chown=appuser:appgroup /app/proto ./proto
 COPY --from=builder --chown=appuser:appgroup /app/src/shared/templates ./dist/shared/templates
 
 # Install only production dependencies
-RUN yarn install --production --frozen-lockfile
+RUN yarn install \
+    --production \
+    --ignore-optional \
+    --frozen-lockfile
 
 # Install runtime tools
 # RUN apk add --no-cache tini curl

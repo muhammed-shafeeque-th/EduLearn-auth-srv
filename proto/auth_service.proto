@@ -8,24 +8,24 @@ import "google/protobuf/timestamp.proto";
 
 // Common User Information for both users and admins
 message AuthUserInfo {
-  string userId = 1;
+  string user_id = 1;
   string username = 2;
   string email = 3;
   string avatar  = 4;
   string status = 5;
   string role = 6;
-  google.protobuf.Timestamp updatedAt = 7;
-  google.protobuf.Timestamp createdAt = 8;
+  google.protobuf.Timestamp updated_at = 7;
+  google.protobuf.Timestamp created_at = 8;
 }
 
 // Pagination
 message PaginationRequest {
   int32 page = 1;
-  int32 pageSize = 2;
+  int32 page_size = 2;
 }
 message PaginationResponse {
-  int32 totalItems = 1;
-  int32 totalPages = 2;
+  int32 total_items = 1;
+  int32 total_pages = 2;
 }
 
 // Generic Error Structure
@@ -64,17 +64,17 @@ service AuthService {
 
 // Register User
 message RegisterUserRequest {
-  string firstName = 1;
-  string lastName = 7;
+  string first_name = 1;
+  string last_name = 7;
   string email = 2;
   string password = 3;
   string role = 4;
   string avatar = 5;
-  string authType = 6; // e.g., "password", "google", "facebook"
+  string auth_type = 6; // e.g., "password", "google", "facebook"
 }
 message RegisterUserResponse {
   oneof result {
-    string userId = 1;
+    string user_id = 1;
     Error error = 2;
   }
 }
@@ -83,7 +83,7 @@ message RegisterUserResponse {
 message Auth2SignRequest {
   string token = 1;
   string provider = 2;
-  string authType = 3;
+  string auth_type = 3;
 }
 message Auth2SignResponse {
   oneof result {
@@ -96,7 +96,7 @@ message Auth2SignResponse {
 message LoginUserRequest {
   string email = 1;
   string password = 2;
-  bool rememberMe = 3;
+  bool remember_me = 3;
 }
 message LoginUserResponse {
   oneof result {
@@ -105,10 +105,10 @@ message LoginUserResponse {
   }
 }
 message LogoutUserRequest {
-  string userId = 1;
+  string user_id = 1;
 }
 message LogoutResponse {
-  string userId = 1;
+  string user_id = 1;
   string message = 2;
 }
 message LogoutUserResponse {
@@ -131,15 +131,15 @@ message VerifyUserResponse {
 
 // AuthUser/Instructor Responses
 message AuthUserResponse {
-  string accessToken = 1;
-  string refreshToken = 2;
+  string access_token = 1;
+  string refresh_token = 2;
 }
 message InstructorSuccessResponse {
-  string accessToken = 1;
-  string refreshToken = 2;
+  string access_token = 1;
+  string refresh_token = 2;
 }
 message RegisterInstructorRequest {
-  string userId = 1;
+  string user_id = 1;
 }
 message RegisterInstructorResponse {
   oneof result {
@@ -150,7 +150,7 @@ message RegisterInstructorResponse {
 
 // Token Refresh
 message RefreshTokenRequest {
-  string refreshToken = 1;
+  string refresh_token = 1;
 }
 message RefreshTokenResponse {
   oneof result {
@@ -159,8 +159,8 @@ message RefreshTokenResponse {
   }
 }
 message RefreshSuccess {
-  string accessToken = 1;
-  string refreshToken = 2;
+  string access_token = 1;
+  string refresh_token = 2;
 }
 
 // --- Admin-specific Auth Flows ---
@@ -177,13 +177,13 @@ message AdminLoginResponse {
   }
 }
 message AdminAuthSuccess {
-  string accessToken = 1;
-  string refreshToken = 2;
+  string access_token = 1;
+  string refresh_token = 2;
 }
 
 // Admin Refresh Token
 message AdminRefreshRequest {
-  string refreshToken = 1;
+  string refresh_token = 1;
 }
 message AdminRefreshResponse {
   oneof result {
@@ -192,8 +192,8 @@ message AdminRefreshResponse {
   }
 }
 message AdminRefreshSuccess {
-  string accessToken = 1;
-  string refreshToken = 2;
+  string access_token = 1;
+  string refresh_token = 2;
 }
 
 // Forgot Password
@@ -208,17 +208,17 @@ message ForgotPasswordResponse {
 }
 message ForgotPasswordSuccess {
   string username = 1;
-  string userId = 5;
+  string user_id = 5;
   string email = 2;
-  string resetLink = 3;
+  string reset_link = 3;
   // int32 expires = 4;
 }
 
 // Change Password
 message ChangePasswordRequest {
-  string userId = 1;
-  string oldPassword = 2;
-  string newPassword = 3;
+  string user_id = 1;
+  string old_password = 2;
+  string new_password = 3;
 }
 message ChangePasswordResponse {
   oneof result {
@@ -234,7 +234,7 @@ message ChangePasswordSuccess {
 message ResetPasswordRequest {
   string token = 1;
   string password = 2;
-  string confirmPassword = 3;
+  string confirm_password = 3;
 }
 message ResetPasswordResponse {
   oneof result {
@@ -263,10 +263,10 @@ message CheckUserByEmailResponse {
 
 // Block/Unblock User
 message BlockUserRequest {
-  string userId = 1;
+  string user_id = 1;
 }
 message UnBlockUserRequest {
-  string userId = 1;
+  string user_id = 1;
 }
 message BlockUserResponse {
   oneof result {

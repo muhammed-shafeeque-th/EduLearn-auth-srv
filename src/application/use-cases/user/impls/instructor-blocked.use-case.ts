@@ -1,13 +1,13 @@
 import { inject, injectable } from 'inversify';
 import { TYPES } from '@/shared/constants/identifiers';
 import IAuthUserRepository from '@/domain/repository/user.repository';
-import IEventPublisher from '../../../adaptors/event-publisher.service';
+import IEventPublisher from '@/application/adaptors/event-publisher.service';
 import UserNotFoundError from '@/domain/errors/user-not-found.error';
 import { IInstructorBlockedUseCase } from '../interfaces/instructor-blocked.interface';
-import InstructorBlockedDto from '../../../dtos/instructor-blocked.event-dto';
+import InstructorBlockedDto from '@/application/dtos/instructor-blocked.event-dto';
 import { UserRoles, UserStatus } from '@/domain/entity/user';
-import { ILoggerService } from '../../../adaptors/logger.service';
-import { ITraceService } from '../../../adaptors/trace.service';
+import { ILoggerService } from '@/application/adaptors/logger.service';
+import { ITraceService } from '@/application/adaptors/trace.service';
 
 @injectable()
 export default class InstructorBlockedUseCaseImpl implements IInstructorBlockedUseCase {

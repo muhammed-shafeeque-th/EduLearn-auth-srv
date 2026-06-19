@@ -1,25 +1,51 @@
 {
   "compilerOptions": {
-    "target": "ES2020",
-    "module": "commonjs",
-    "outDir": "./dist",
-    "rootDir": "./src",
-    "strict": true, // Enable all strict type-checking options
-    "moduleResolution": "node", // Ensure this is set to "node"
-    "esModuleInterop": true, // Ensure this is true
-    "skipLibCheck": true,
-    "forceConsistentCasingInFileNames": true,
-    "emitDecoratorMetadata": true, // Required for decorators like in Class-validator, TypeORM
-    "experimentalDecorators": true, // Enable decorator support
-    "baseUrl": "./src", // Base directory for module resolution
+    "target": "ES2022",
+
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+
+    "lib": ["ES2022"],
+
+    "rootDir": ".",
+
+    "baseUrl": ".",
+
     "paths": {
-      // For cleaner imports, e.g., import { User } from '@/entities/User';
-      "@/*": ["./*"]
+      "@/*": ["src/*"],
+      "@domain/*": ["src/domain/*"],
+      "@application/*": ["src/application/*"],
+      "@infrastructure/*": ["src/infrastructure/*"],
+      "@presentation/*": ["src/presentation/*"],
+      "@shared/*": ["src/shared/*"]
     },
-    "lib": ["es2020"],
+
+    "strict": true,
+
+    "noImplicitAny": true,
+    "strictNullChecks": true,
+
+    "esModuleInterop": true,
+
+    "allowSyntheticDefaultImports": true,
+
+    "resolveJsonModule": true,
+
+    "experimentalDecorators": true,
+    "emitDecoratorMetadata": true,
+
+    "skipLibCheck": true,
     "strictPropertyInitialization": false,
-    "allowSyntheticDefaultImports": true
+
+    "forceConsistentCasingInFileNames": true,
+
+    // "isolatedModules": true,
+    "types": ["node", "jest"],
+
+    "sourceMap": true
   },
-  // "include": ["src/**/*.ts"],
-  "exclude": ["node_modules", "dist"] // Exclude test files from compilation , "**/*.spec.ts"
+
+  "include": ["src/**/*", "test/**/*"],
+
+  "exclude": ["node_modules", "dist"]
 }

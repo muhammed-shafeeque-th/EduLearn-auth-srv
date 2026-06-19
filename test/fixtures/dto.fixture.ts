@@ -10,9 +10,7 @@ import RefreshTokenDto from '@/application/dtos/refresh-token.dto';
 import { AuthType, UserRoles } from '@/domain/entity/user';
 import { FAKE_EMAIL, FAKE_PASSWORD } from './constants';
 
-export function buildRegisterUserDto(
-  overrides: Partial<RegisterUserDto> = {},
-): RegisterUserDto {
+export function buildRegisterUserDto(overrides: Partial<RegisterUserDto> = {}): RegisterUserDto {
   return RegisterUserDto.create({
     email: FAKE_EMAIL,
     password: FAKE_PASSWORD,
@@ -66,9 +64,7 @@ export function buildForgotPasswordDto(email = FAKE_EMAIL): ForgotPasswordDto {
   return { email };
 }
 
-export function buildResetPasswordDto(
-  overrides: Partial<ResetPasswordDto> = {},
-): ResetPasswordDto {
+export function buildResetPasswordDto(overrides: Partial<ResetPasswordDto> = {}): ResetPasswordDto {
   return ResetPasswordDto.create({
     token: 'reset-token-value',
     password: 'new-password',

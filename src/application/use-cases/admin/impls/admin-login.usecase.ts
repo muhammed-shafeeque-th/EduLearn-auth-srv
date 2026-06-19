@@ -1,18 +1,18 @@
 import { inject, injectable } from 'inversify';
 import { TYPES } from '@/shared/constants/identifiers';
-import IUUIDService from '../../../adaptors/uuid.service';
+import type IUUIDService from '../../../adaptors/uuid.service';
 import LoginUserDto from '../../../dtos/login-user.dto';
 import UserNotFoundError from '@/shared/errors/not-found.error';
 import BadRequestError from '@/shared/errors/bad-request.error';
-import ITokenService from '../../../adaptors/token.service';
+import type ITokenService from '../../../adaptors/token.service';
 import { IAuthTokens } from '@/shared/types/auth.tokens';
 import { calculateRefreshTokenExpiryInMs } from '@/shared/utils/token-manager';
-import IAdminLoginUseCase from '../interfaces/admin-login.interface';
+import type IAdminLoginUseCase from '../interfaces/admin-login.interface';
 import { getEnvs } from '@/shared/utils/getEnv';
 import { UserRoles } from '@/domain/entity/user';
 import { RolePermissions } from '@/shared/types';
-import { ILoggerService } from '@/application/adaptors/logger.service';
-import { ITraceService } from '@/application/adaptors/trace.service';
+import { type ILoggerService } from '@/application/adaptors/logger.service';
+import { type ITraceService } from '@/application/adaptors/trace.service';
 
 const config = getEnvs({
   AUTH_ADMIN_EMAIL: '',
@@ -23,7 +23,7 @@ const config = getEnvs({
 @injectable()
 export default class AdminLoginUseCaseImpl implements IAdminLoginUseCase {
   public constructor(
-    @inject(TYPES.IUUIDService) private readonly uuidService: IUUIDService,
+    @inject(TYPES.IUUIDService) private readonly _uuidService: IUUIDService,
     @inject(TYPES.ITokenService) private readonly _tokenService: ITokenService,
     @inject(TYPES.LoggerService)
     private readonly _logger: ILoggerService,
@@ -52,7 +52,7 @@ export default class AdminLoginUseCaseImpl implements IAdminLoginUseCase {
         throw new BadRequestError('Invalid password. Please try again.');
       }
 
-      const tokenId = this.uuidService.generate();
+      const tokenId = this._uuidService.generate();
 
       const tokenPayload = {
         email: dto.email,

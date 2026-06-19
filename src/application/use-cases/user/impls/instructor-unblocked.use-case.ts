@@ -3,10 +3,10 @@ import { TYPES } from '@/shared/constants/identifiers';
 import IAuthUserRepository from '@/domain/repository/user.repository';
 import UserNotFoundError from '@/domain/errors/user-not-found.error';
 import { IInstructorUnBlockedUseCase } from '../interfaces/instructor-unblocked.interface';
-import InstructorUnblockedDto from '../../../dtos/instructor-unblocked.event-dto';
+import InstructorUnblockedDto from '@/application/dtos/instructor-unblocked.event-dto';
 import { UserRoles, UserStatus } from '@/domain/entity/user';
-import { ILoggerService } from '../../../adaptors/logger.service';
-import { ITraceService } from '../../../adaptors/trace.service';
+import { ILoggerService } from '@/application/adaptors/logger.service';
+import { ITraceService } from '@/application/adaptors/trace.service';
 
 @injectable()
 export default class InstructorUnblockedUseCaseImpl implements IInstructorUnBlockedUseCase {

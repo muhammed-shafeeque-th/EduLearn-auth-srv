@@ -1,12 +1,12 @@
 import IAuthUserRepository from '@/domain/repository/user.repository';
 import { inject, injectable } from 'inversify';
-import IEventPublisher from '../../../adaptors/event-publisher.service';
+import IEventPublisher from '@/application/adaptors/event-publisher.service';
 import UserNotFoundError from '@/domain/errors/user-not-found.error';
 import { TYPES } from '@/shared/constants/identifiers';
 import IRegisterInstructorUseCase from '../interfaces/register-instructor.interface';
-import RegisterInstructorEventDto from '../../../dtos/register-instructor-event.dto';
-import { ITraceService } from '../../../adaptors/trace.service';
-import { ILoggerService } from '../../../adaptors/logger.service';
+import RegisterInstructorEventDto from '@/application/dtos/register-instructor-event.dto';
+import { ITraceService } from '@/application/adaptors/trace.service';
+import { ILoggerService } from '@/application/adaptors/logger.service';
 
 @injectable()
 export default class RegisteredInstructorUseCaseImpl implements IRegisterInstructorUseCase {

@@ -37,9 +37,7 @@ export function buildAccountUnblockedDto(
   return dto;
 }
 
-export function buildRegisterInstructorEventDto(
-  userId = FAKE_USER_ID,
-): RegisterInstructorEventDto {
+export function buildRegisterInstructorEventDto(userId = FAKE_USER_ID): RegisterInstructorEventDto {
   const dto = new RegisterInstructorEventDto();
   dto.eventId = 'event-1';
   dto.eventType = 'RegisterInstructorEvent';
@@ -85,9 +83,7 @@ export function buildInstructorUnblockedDto(
   return dto;
 }
 
-export function buildUserUpdateDto(
-  payload: Partial<UserUpdateDto['payload']> = {},
-): UserUpdateDto {
+export function buildUserUpdateDto(payload: Partial<UserUpdateDto['payload']> = {}): UserUpdateDto {
   const dto = new UserUpdateDto();
   dto.eventId = 'event-1';
   dto.eventType = 'UserUpdateEvent';
