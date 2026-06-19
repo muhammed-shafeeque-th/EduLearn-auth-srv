@@ -1,34 +1,32 @@
 import { Repository } from 'typeorm';
 import { AppDataSource } from '@/infrastructure/database/data-source/data-source';
 import UserModel from '@/infrastructure/database/entities/user';
-import User from '@/domain/entity/user';
-import { UserRoles } from '@/shared/types/user-types';
-import { UserStatus } from '@/shared/types/user-status';
+import User, { UserStatus } from '@/domain/entity/user';
 import { inject, injectable } from 'inversify';
 import { TYPES } from '@/shared/constants/identifiers';
-import { TracingService } from '@/infrastructure/observability/tracing/trace.service';
-import { LoggingService } from '@/infrastructure/observability/logging/logging.service';
-import { MetricsService } from '@/infrastructure/observability/monitoring/monitoring.service';
 import IAuthUserRepository from '@/domain/repository/user.repository';
-import { ICacheService } from '@/application/services/cache.service';
+import { ICacheService } from '@/application/adaptors/cache.service';
+import { ITraceService } from '@/application/adaptors/trace.service';
+import { IMetricService } from '@/application/adaptors/metric.service';
+import { ILoggerService } from '@/application/adaptors/logger.service';
 
 @injectable()
 export default class PostgresAuthUserRepositoryImpl implements IAuthUserRepository {
-  private readonly repo: Repository<UserModel>;
+  private readonly _repo: Repository<UserModel>;
 
   public constructor(
-    @inject(TYPES.TracingService)
-    private readonly tracer: TracingService,
-    @inject(TYPES.MetricsService)
-    private readonly metrics: MetricsService,
-    @inject(TYPES.LoggingService)
-    private readonly logger: LoggingService,
+    @inject(TYPES.TraceService)
+    private readonly tracer: ITraceService,
+    @inject(TYPES.MetricService)
+    private readonly metrics: IMetricService,
+    @inject(TYPES.LoggerService)
+    private readonly logger: ILoggerService,
     @inject(TYPES.ICacheService)
     private readonly cache: ICacheService,
-    // repo?: Repository<UserModel>,
+    // _repo?: Repository<UserModel>,
   ) {
     // Dependency injection fallback for easier testability and singletons.
-    this.repo = AppDataSource.getRepository(UserModel);
+    this._repo = AppDataSource.getRepository(UserModel);
   }
 
   public async create(user: User): Promise<User> {
@@ -41,8 +39,8 @@ export default class PostgresAuthUserRepositoryImpl implements IAuthUserReposito
       this.logger.debug(`Creating user in database with email: ${user.getEmail()}`);
       try {
         const ormUser = this.mapToEntity(user);
-        const newUser = this.repo.create(ormUser);
-        const savedUser = await this.repo.save(newUser);
+        const newUser = this._repo.create(ormUser);
+        const savedUser = await this._repo.save(newUser);
 
         if (savedUser) {
           this.logger.debug(`User created successfully with ID: ${savedUser.id}`);
@@ -89,7 +87,7 @@ export default class PostgresAuthUserRepositoryImpl implements IAuthUserReposito
 
         const endTimer = this.metrics.measureDBOperationDuration('findById', 'SELECT');
         this.metrics.incrementDBRequestCounter('SELECT');
-        const user = await this.repo.findOne({ where: { id: userId } });
+        const user = await this._repo.findOne({ where: { id: userId } });
         endTimer();
 
         if (user) {
@@ -130,7 +128,7 @@ export default class PostgresAuthUserRepositoryImpl implements IAuthUserReposito
 
         const endTimer = this.metrics.measureDBOperationDuration('findByEmail', 'SELECT');
         this.metrics.incrementDBRequestCounter('SELECT');
-        const user = await this.repo.findOne({ where: { email } });
+        const user = await this._repo.findOne({ where: { email } });
         endTimer();
 
         if (user) {
@@ -164,8 +162,8 @@ export default class PostgresAuthUserRepositoryImpl implements IAuthUserReposito
 
         // Block user (soft delete), and fetch updated record in parallel
         const [, userRecord] = await Promise.all([
-          this.repo.update({ id: userId }, { status: UserStatus.BLOCKED }),
-          this.repo.findOne({ where: { id: userId } }),
+          this._repo.update({ id: userId }, { status: UserStatus.BLOCKED }),
+          this._repo.findOne({ where: { id: userId } }),
         ]);
         endTimer();
 
@@ -198,8 +196,8 @@ export default class PostgresAuthUserRepositoryImpl implements IAuthUserReposito
 
         const endTimer = this.metrics.measureDBOperationDuration('update', 'UPDATE');
         this.metrics.incrementDBRequestCounter('UPDATE');
-        await this.repo.update({ id: userId }, modelData);
-        const updatedUser = await this.repo.findOne({ where: { id: userId } });
+        await this._repo.update({ id: userId }, modelData);
+        const updatedUser = await this._repo.findOne({ where: { id: userId } });
         endTimer();
 
         if (updatedUser) {
@@ -240,7 +238,8 @@ export default class PostgresAuthUserRepositoryImpl implements IAuthUserReposito
       createdAt: user.createdAt,
       updatedAt: user.updatedAt,
       lastLogin: user.lastLogin,
-      role: user.role,
+      roles: user.roles,
+      roleStatus: user.roleStatus as any,
       status: user.status,
     });
   }
@@ -262,7 +261,8 @@ export default class PostgresAuthUserRepositoryImpl implements IAuthUserReposito
     ormEntity.updatedAt = user.getUpdatedAt?.();
     ormEntity.lastLogin = user.getLastLogin?.();
     ormEntity.authType = user.getAuthType?.();
-    ormEntity.role = user.getRole?.() as UserRoles;
+    ormEntity.roles = user.getRoles?.();
+    ormEntity.roleStatus = user.getRoleStatusMap?.() as any;
     ormEntity.status = user.getStatus?.() as UserStatus;
 
     return ormEntity;
