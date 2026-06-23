@@ -14,22 +14,22 @@ export class PasswordResetEntity {
   id!: string;
 
   @Column({ nullable: false, unique: true })
-  token: string;
+  token!: string;
 
   @Index()
   @Column({ nullable: false })
-  userId: string;
+  userId!: string;
 
   @ManyToOne(() => UserEntity, (user) => user.refreshTokens, { onDelete: 'CASCADE' })
   user!: UserEntity;
 
   @CreateDateColumn()
-  createdAt: Date;
+  createdAt!: Date;
 
   @Column({ type: 'timestamp', nullable: false })
-  expiresAt: Date;
+  expiresAt!: Date;
 
   @Index('idx_token_is_used')
   @Column({ default: false })
-  isUsed: boolean;
+  isUsed!: boolean;
 }

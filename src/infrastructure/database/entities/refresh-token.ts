@@ -15,25 +15,25 @@ export class RefreshTokenEntity {
   id!: string;
 
   @Column({ nullable: false })
-  token: string;
+  token!: string;
 
   @Column({ default: false })
-  isRemember: boolean;
+  isRemember!: boolean;
 
   @Index()
   @Column({ nullable: false })
-  userId: string;
+  userId!: string;
 
   @ManyToOne(() => UserEntity, (user) => user.refreshTokens, { onDelete: 'CASCADE' })
   user!: UserEntity;
 
   @CreateDateColumn()
-  createdAt: Date;
+  createdAt!: Date;
 
   @Column({ type: 'timestamp', nullable: false })
-  expiresAt: Date;
+  expiresAt!: Date;
 
   @Index('idx_revoked_tokens')
   @Column({ default: false })
-  revoked: boolean;
+  revoked!: boolean;
 }
