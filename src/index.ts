@@ -1,8 +1,8 @@
 import 'reflect-metadata';
 import { App } from './app';
-import { LoggingService } from './infrastructure/observability/logging/logging.service';
+import { LoggerService } from './infrastructure/observability/logger/logger.service';
 
-const logger = LoggingService.getInstance();
+const logger = LoggerService.getInstance();
 const app = new App();
 
 process.on('SIGINT', async () => await app.shutdown());
