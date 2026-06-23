@@ -1,5 +1,3 @@
-import { AuthType, UserRoles } from '@/shared/types/user-types';
-import { UserStatus } from '@/shared/types/user-status';
 import {
   Column,
   Entity,
@@ -11,6 +9,7 @@ import {
 } from 'typeorm';
 import { RefreshTokenEntity } from './refresh-token';
 import { PasswordResetEntity } from './password-reset-tokens';
+import { AuthType, UserRoles, UserStatus } from '@/domain/entity/user';
 
 @Entity('auth_users')
 export default class UserEntity {
@@ -40,9 +39,13 @@ export default class UserEntity {
   @Column({
     type: 'enum',
     enum: UserRoles,
-    default: UserRoles.STUDENT,
+    array: true,
+    default: [UserRoles.STUDENT],
   })
-  role!: UserRoles;
+  roles!: UserRoles[];
+
+  @Column({ type: 'jsonb', default: {} })
+  roleStatus!: Record<UserRoles, string>;
 
   @Column({
     type: 'enum',

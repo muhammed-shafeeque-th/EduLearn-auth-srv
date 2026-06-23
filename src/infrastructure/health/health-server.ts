@@ -1,9 +1,9 @@
 import http from 'http';
 import { RedisCacheService } from '../redis/cache.service';
 import { AppDataSource } from '../database/data-source/data-source';
-import { LoggingService } from '../observability/logging/logging.service';
+import { LoggerService } from '../observability/logger/logger.service';
 
-const logger = LoggingService.getInstance();
+const logger = LoggerService.getInstance();
 
 export function startHealthServer(
   redis: RedisCacheService,

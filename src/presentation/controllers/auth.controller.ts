@@ -3,8 +3,6 @@ import { inject, injectable } from 'inversify';
 import { TYPES } from '@/shared/constants/identifiers';
 import { validateDto } from '@/shared/utils/validator';
 import { ResponseMapper } from '../mappers/response-mapper';
-import { TracingService } from '@/infrastructure/observability/tracing/trace.service';
-import { LoggingService } from '@/infrastructure/observability/logging/logging.service';
 import { BaseError } from '@/shared/errors/base-error';
 
 import RegisterUserDto from '@/application/dtos/register-user.dto';
@@ -17,14 +15,14 @@ import ChangePasswordDto from '@/application/dtos/change-password.dto';
 import ForgotPasswordDto from '@/application/dtos/forgot-password.dto';
 import ResetPasswordDto from '@/application/dtos/reset-password.dto';
 
-import IRegisterUserUseCase from '@/application/adaptors/register-user.interface';
-import ILoginUserUseCase from '@/application/adaptors/login-user.interface';
-import ILogoutUserUseCase from '@/application/adaptors/logout.interface';
-import IAuth2SignUseCase from '@/application/adaptors/auth2-sign.interface';
-import { IVerifyUserUseCase } from '@/application/adaptors/verify-user.interface';
-import { IChangePasswordUseCase } from '@/application/adaptors/change-password.inteface';
-import { IForgotPasswordUseCase } from '@/application/adaptors/forgot-password.inteface';
-import { IResetPasswordUseCase } from '@/application/adaptors/reset-password.inteface';
+import IRegisterUserUseCase from '@/application/use-cases/user/interfaces/register-user.interface';
+import ILoginUserUseCase from '@/application/use-cases/user/interfaces/login-user.interface';
+import ILogoutUserUseCase from '@/application/use-cases/user/interfaces/logout.interface';
+import IAuth2SignUseCase from '@/application/use-cases/user/interfaces/auth2-sign.interface';
+import { IVerifyUserUseCase } from '@/application/use-cases/user/interfaces/verify-user.interface';
+import { IChangePasswordUseCase } from '@/application/use-cases/user/interfaces/change-password.inteface';
+import { IForgotPasswordUseCase } from '@/application/use-cases/user/interfaces/forgot-password.inteface';
+import { IResetPasswordUseCase } from '@/application/use-cases/user/interfaces/reset-password.inteface';
 
 import {
   Auth2SignRequest,
@@ -52,11 +50,13 @@ import {
   AdminRefreshRequest,
 } from '@/infrastructure/gRPC/generated/auth_service';
 import User, { AuthType, UserRoles } from '@/domain/entity/user';
-import IAdminLoginUseCase from '@/application/adaptors/admin-login.interface';
+import IAdminLoginUseCase from '@/application/use-cases/admin/interfaces/admin-login.interface';
 import AdminLoginDto from '@/application/dtos/admin-login.dto';
-import { IRefreshTokenUseCase } from '@/application/adaptors/refresh-token.interface';
+import { IRefreshTokenUseCase } from '@/application/use-cases/user/interfaces/refresh-token.interface';
 import { getMetadataValues } from '@/shared/utils/get-metadata';
 import { GrpcErrorMapper } from '@/shared/errors/mapper/grpc-error.mapper';
+import { ITraceService } from '@/application/adaptors/trace.service';
+import { ILoggerService } from '@/application/adaptors/logger.service';
 
 type GrpcCall<TRequest, TResponse> = ServerUnaryCall<TRequest, TResponse>;
 type GrpcCallback<TResponse> = sendUnaryData<TResponse>;
@@ -64,22 +64,22 @@ type GrpcCallback<TResponse> = sendUnaryData<TResponse>;
 @injectable()
 export default class AuthController {
   constructor(
-    @inject(TYPES.IRegisterUserUseCase) private readonly registerUserUseCase: IRegisterUserUseCase,
-    @inject(TYPES.ILoginUserUseCase) private readonly loginUserUseCase: ILoginUserUseCase,
-    @inject(TYPES.ILogoutUserUseCase) private readonly logoutUserUseCase: ILogoutUserUseCase,
-    @inject(TYPES.IAuth2SignUseCase) private readonly auth2SignUseCase: IAuth2SignUseCase,
-    @inject(TYPES.IVerifyUserUseCase) private readonly verifyUserUseCase: IVerifyUserUseCase,
-    @inject(TYPES.IRefreshTokenUseCase) private readonly refreshTokenUseCase: IRefreshTokenUseCase,
-    @inject(TYPES.IAdminLoginUseCase) private readonly adminLoginUseCase: IAdminLoginUseCase,
-    @inject(TYPES.IAdminRefreshUseCase) private readonly adminRefreshUseCase: IRefreshTokenUseCase,
+    @inject(TYPES.IRegisterUserUseCase) private readonly _registerUserUseCase: IRegisterUserUseCase,
+    @inject(TYPES.ILoginUserUseCase) private readonly _loginUserUseCase: ILoginUserUseCase,
+    @inject(TYPES.ILogoutUserUseCase) private readonly _logoutUserUseCase: ILogoutUserUseCase,
+    @inject(TYPES.IAuth2SignUseCase) private readonly _auth2SignUseCase: IAuth2SignUseCase,
+    @inject(TYPES.IVerifyUserUseCase) private readonly _verifyUserUseCase: IVerifyUserUseCase,
+    @inject(TYPES.IRefreshTokenUseCase) private readonly _refreshTokenUseCase: IRefreshTokenUseCase,
+    @inject(TYPES.IAdminLoginUseCase) private readonly _adminLoginUseCase: IAdminLoginUseCase,
+    @inject(TYPES.IAdminRefreshUseCase) private readonly _adminRefreshUseCase: IRefreshTokenUseCase,
     @inject(TYPES.IChangePasswordUseCase)
-    private readonly changePasswordUseCase: IChangePasswordUseCase,
+    private readonly _changePasswordUseCase: IChangePasswordUseCase,
     @inject(TYPES.IForgotPasswordUseCase)
-    private readonly forgotPasswordUseCase: IForgotPasswordUseCase,
+    private readonly _forgotPasswordUseCase: IForgotPasswordUseCase,
     @inject(TYPES.IResetPasswordUseCase)
-    private readonly resetPasswordUseCase: IResetPasswordUseCase,
-    @inject(TYPES.TracingService) private readonly tracer: TracingService,
-    @inject(TYPES.LoggingService) private readonly logger: LoggingService,
+    private readonly _resetPasswordUseCase: IResetPasswordUseCase,
+    @inject(TYPES.TraceService) private readonly _tracer: ITraceService,
+    @inject(TYPES.LoggerService) private readonly _logger: ILoggerService,
   ) {}
 
   private handleWithError<TResponse>(
@@ -87,7 +87,7 @@ export default class AuthController {
     callback: GrpcCallback<TResponse | { error: Error }>,
   ) {
     method().catch((err) => {
-      this.logger.warn('Error processing gRPC request', { error: err });
+      this._logger.warn('Error processing gRPC request', { error: err });
       callback(GrpcErrorMapper.toGrpc(err));
     });
   }
@@ -98,7 +98,7 @@ export default class AuthController {
     callback: GrpcCallback<TResponse | { error: Error }>,
   ) {
     this.handleWithError(async () => {
-      return await this.tracer.startActiveSpan(spanName, async (span) => {
+      return await this._tracer.startActiveSpan(spanName, async (span) => {
         try {
           const result = await logic(span);
           callback(null, result);
@@ -121,7 +121,7 @@ export default class AuthController {
 
         const { email, role, password, avatar, firstName, lastName, authType } = call.request;
         span?.setAttribute('user.email', email);
-        this.logger.debug('Handling RegisterUser', { ctx: AuthController.name, email });
+        this._logger.debug('Handling RegisterUser', { ctx: AuthController.name, email });
 
         const dto = RegisterUserDto.create({
           email,
@@ -134,14 +134,14 @@ export default class AuthController {
         });
 
         await validateDto(dto);
-        this.logger.debug('Validation successful for RegisterUser parameters', { email });
+        this._logger.debug('Validation successful for RegisterUser parameters', { email });
 
-        const user = await this.registerUserUseCase.execute(dto);
+        const user = await this._registerUserUseCase.execute(dto);
         const response = new ResponseMapper<User, RegisterUserResponse>({
           fields: { userId: (user: User): string => user.getId() },
         }).toResponse(user);
 
-        this.logger.debug('RegisterUser completed', { email, userId: user.getId() });
+        this._logger.debug('RegisterUser completed', { email, userId: user.getId() });
         return response;
       },
       callback,
@@ -156,14 +156,14 @@ export default class AuthController {
       'AuthController.auth2Sign',
       async (span) => {
         const { provider, token, authType } = call.request;
-        this.logger.debug('Handling auth2Sign', { provider, authType, ctx: AuthController.name });
+        this._logger.debug('Handling auth2Sign', { provider, authType, ctx: AuthController.name });
         span?.setAttributes?.({ provider, token, authType });
 
         const dto = Auth2SignDto.create({ authType: authType as AuthType, token, provider });
         await validateDto(dto);
 
-        this.logger.debug('Validation successful for auth2Sign', { provider, authType });
-        const { accessToken, refreshToken } = await this.auth2SignUseCase.execute(dto);
+        this._logger.debug('Validation successful for auth2Sign', { provider, authType });
+        const { accessToken, refreshToken } = await this._auth2SignUseCase.execute(dto);
 
         return { success: { accessToken, refreshToken } };
       },
@@ -180,13 +180,13 @@ export default class AuthController {
       async (span) => {
         const { email } = call.request;
         span?.setAttribute('email', email);
-        this.logger.debug('Handling verifyUser', { email, ctx: AuthController.name });
+        this._logger.debug('Handling verifyUser', { email, ctx: AuthController.name });
 
         const verifyDto = VerifyUserDto.create({ email });
         await validateDto(verifyDto);
 
-        this.logger.debug('Validation successful for verifyUser', { email });
-        const { accessToken, refreshToken } = await this.verifyUserUseCase.execute(verifyDto);
+        this._logger.debug('Validation successful for verifyUser', { email });
+        const { accessToken, refreshToken } = await this._verifyUserUseCase.execute(verifyDto);
 
         return { success: { accessToken, refreshToken } };
       },
@@ -202,13 +202,13 @@ export default class AuthController {
       async (span) => {
         const { email, password } = call.request;
         span?.setAttribute('email', email);
-        this.logger.debug('Handling adminLogin', { email, ctx: AuthController.name });
+        this._logger.debug('Handling adminLogin', { email, ctx: AuthController.name });
 
         const loginDto = AdminLoginDto.create({ email, password });
         await validateDto(loginDto);
 
-        this.logger.debug('Validation successful for adminLogin', { email });
-        const { accessToken, refreshToken } = await this.adminLoginUseCase.execute(loginDto);
+        this._logger.debug('Validation successful for adminLogin', { email });
+        const { accessToken, refreshToken } = await this._adminLoginUseCase.execute(loginDto);
 
         return { success: { accessToken, refreshToken } };
       },
@@ -224,14 +224,14 @@ export default class AuthController {
       'AuthController.loginUser',
       async (span) => {
         const { email, password, rememberMe } = call.request;
-        this.logger.debug('Handling loginUser', { email, ctx: AuthController.name });
+        this._logger.debug('Handling loginUser', { email, ctx: AuthController.name });
         span?.setAttributes?.({ email });
 
         const loginDto = LoginUserDto.create({ email, password, rememberMe });
         await validateDto(loginDto);
 
-        this.logger.debug('Validation successful for loginUser', { email });
-        const { accessToken, refreshToken } = await this.loginUserUseCase.execute(loginDto);
+        this._logger.debug('Validation successful for loginUser', { email });
+        const { accessToken, refreshToken } = await this._loginUserUseCase.execute(loginDto);
 
         return { success: { accessToken, refreshToken } };
       },
@@ -247,14 +247,14 @@ export default class AuthController {
       'AuthController.logoutUser',
       async (span) => {
         const { userId } = call.request;
-        this.logger.debug('Handling logoutUser', { userId, ctx: AuthController.name });
+        this._logger.debug('Handling logoutUser', { userId, ctx: AuthController.name });
         span?.setAttributes?.({ userId });
 
         const logoutDto = LogoutUserDto.create({ userId });
         await validateDto(logoutDto);
 
-        this.logger.debug('Validation successful for logoutUser', { userId });
-        const response = await this.logoutUserUseCase.execute(logoutDto);
+        this._logger.debug('Validation successful for logoutUser', { userId });
+        const response = await this._logoutUserUseCase.execute(logoutDto);
 
         return {
           success: { userId: response.userId, message: 'User logged out successfully' },
@@ -270,16 +270,16 @@ export default class AuthController {
   ): void => {
     this.runWithTracingSpan(
       'AuthController.refreshToken',
-      async (span) => {
+      async () => {
         const { refreshToken } = call.request;
 
         const dto = RefreshTokenDto.create({ refreshToken });
         await validateDto(dto);
-        this.logger.debug('Validation successful for getRefreshToken');
+        this._logger.debug('Validation successful for getRefreshToken');
 
-        const response = await this.refreshTokenUseCase.execute(dto);
+        const response = await this._refreshTokenUseCase.execute(dto);
 
-        this.logger.debug('getRefreshToken request completed');
+        this._logger.debug('getRefreshToken request completed');
         return { success: response };
       },
       callback,
@@ -297,11 +297,11 @@ export default class AuthController {
 
         const dto = RefreshTokenDto.create({ refreshToken });
         await validateDto(dto);
-        this.logger.debug('Validation successful for adminRefresh');
+        this._logger.debug('Validation successful for adminRefresh');
 
-        const response = await this.adminRefreshUseCase.execute(dto);
+        const response = await this._adminRefreshUseCase.execute(dto);
 
-        this.logger.debug('adminRefresh request completed');
+        this._logger.debug('adminRefresh request completed');
         return { success: response };
       },
       callback,
@@ -321,8 +321,8 @@ export default class AuthController {
         const dto = ChangePasswordDto.create({ userId, newPassword, oldPassword });
         await validateDto(dto);
 
-        this.logger.debug('Validation successful for changePassword', { userId });
-        const response = await this.changePasswordUseCase.execute(dto);
+        this._logger.debug('Validation successful for changePassword', { userId });
+        const response = await this._changePasswordUseCase.execute(dto);
 
         return { success: { updated: !!response } };
       },
@@ -347,8 +347,8 @@ export default class AuthController {
           idempotencyKey: 'idempotency-key',
         });
 
-        this.logger.debug('Validation successful for forgotPassword', { email });
-        const { link, user } = await this.forgotPasswordUseCase.execute(dto, idempotencyKey!);
+        this._logger.debug('Validation successful for forgotPassword', { email });
+        const { link, user } = await this._forgotPasswordUseCase.execute(dto, idempotencyKey!);
 
         return {
           success: {
@@ -376,8 +376,8 @@ export default class AuthController {
         const dto = ResetPasswordDto.create({ token, confirmPassword, password });
         await validateDto(dto);
 
-        this.logger.debug('Validation successful for resetPassword', { token });
-        const result = await this.resetPasswordUseCase.execute(dto);
+        this._logger.debug('Validation successful for resetPassword', { token });
+        const result = await this._resetPasswordUseCase.execute(dto);
 
         return { success: { updated: !!result } };
       },

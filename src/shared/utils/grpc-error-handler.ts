@@ -1,7 +1,7 @@
 import { Metadata, sendUnaryData, ServerWritableStream, ServiceError, status } from '@grpc/grpc-js';
 import { BaseError } from '../errors/base-error';
 
-const mapHttpStatusToGrpcStatus = (httpStatus: number): number => {
+export const mapHttpStatusToGrpcStatus = (httpStatus: number): number => {
   const statusMap: { [key: number]: number } = {
     200: 0, // OK
     400: 3, // INVALID_ARGUMENT
@@ -38,7 +38,7 @@ export default function grpcErrorHandler(
 
     // create the gRPC error object directly
     serviceError = {
-      code: mapHttpStatusToGrpcStatus(error.statusCode),
+      // code: mapHttpStatusToGrpcStatus(),
       message: error.errorCode,
       details: error.message,
       name: error.constructor.name,

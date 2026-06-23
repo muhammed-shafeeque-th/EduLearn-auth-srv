@@ -1,4 +1,4 @@
-export enum KafkaTopics {
+export enum EventTopics {
   // ====== AUTH DOMAIN EVENTS ======
   AuthUserCreated = 'auth.user.created.v1',
   AuthUserRegistered = 'auth.user.registered.v1',
@@ -15,11 +15,11 @@ export enum KafkaTopics {
   AuthTokenRevoked = 'auth.token.revoked.v1',
 
   // ====== USER DOMAIN EVENTS ======
-  UserCreated = 'user.created.v1',
-  UserUpdated = 'user.updated.v1',
-  UserBlocked = 'user.blocked.v1',
-  UserUnblocked = 'user.unblocked.v1',
-  UserDeleted = 'user.deleted.v1',
+  UserAccountCreated = 'user.account.created.v1',
+  UserAccountUpdated = 'user.account.updated.v1',
+  UserAccountBlocked = 'user.account.blocked.v1',
+  UserAccountUnblocked = 'user.account.unblocked.v1',
+  UserAccountDeleted = 'user.account.deleted.v1',
   UserProfileCompleted = 'user.profile.completed.v1',
   UserProfileUpdated = 'user.profile.updated.v1',
   UserStatusChanged = 'user.status.changed.v1',
@@ -28,6 +28,8 @@ export enum KafkaTopics {
   UserInstructorRegistered = 'user.instructor.registered.v1',
   UserInstructorVerified = 'user.instructor.verified.v1',
   UserInstructorRejected = 'user.instructor.rejected.v1',
+  UserInstructorBlocked = 'user.instructor.blocked.v1',
+  UserInstructorUnblocked = 'user.instructor.unblocked.v1',
 
   // ====== NOTIFICATION DOMAIN EVENTS ======
   NotificationSentEmail = 'notification.sent.email.v1',
@@ -123,3 +125,5 @@ export enum KafkaTopics {
   AuditLogEvent = 'audit.log.event.v1',
   HealthCheck = 'internal.healthcheck.v1',
 }
+
+export { EventTopics as KafkaTopics };

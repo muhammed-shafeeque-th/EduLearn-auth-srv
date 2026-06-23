@@ -1,7 +1,7 @@
 import { DataSource } from 'typeorm';
 import path from 'path';
 import { getEnvs } from '@/shared/utils/getEnv';
-import { LoggingService } from '@/infrastructure/observability/logging/logging.service';
+import { LoggerService } from '@/infrastructure/observability/logger/logger.service';
 
 const { POSTGRES_DB, POSTGRES_HOST, POSTGRES_PASSWORD, POSTGRES_PORT, POSTGRES_USER, NODE_ENV } =
   getEnvs({
@@ -13,7 +13,7 @@ const { POSTGRES_DB, POSTGRES_HOST, POSTGRES_PASSWORD, POSTGRES_PORT, POSTGRES_U
     NODE_ENV: 'development',
   });
 
-const logger = LoggingService.getInstance();
+const logger = LoggerService.getInstance();
 
 export const AppDataSource = new DataSource({
   type: 'postgres', // Specifies the database type

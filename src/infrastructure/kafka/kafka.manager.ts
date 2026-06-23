@@ -1,10 +1,10 @@
-import { LoggingService } from '../observability/logging/logging.service';
+import { LoggerService } from '../observability/logger/logger.service';
 import { KafkaClient } from './kafka.client';
 import { KafkaPublisher } from './kafka.publisher';
 import { KafkaConfig } from './kafka.types';
 
 export class KafkaManager {
-  private readonly logger = LoggingService.getInstance();
+  private readonly logger = LoggerService.getInstance();
   private client: KafkaClient;
   private publisher: KafkaPublisher;
   private isInitialized = false;

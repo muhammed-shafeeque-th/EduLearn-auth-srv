@@ -8,17 +8,17 @@ import { ResetToken } from '@/domain/entity/reset-token';
 
 @injectable()
 export default class PasswordResetRepositoryImpl implements IPasswordResetTokenRepository {
-  private repo: Repository<PasswordResetEntity>;
+  private _repo: Repository<PasswordResetEntity>;
   public constructor() {
-    this.repo = AppDataSource.getRepository(PasswordResetEntity);
+    this._repo = AppDataSource.getRepository(PasswordResetEntity);
   }
 
   public async createToken(token: ResetToken): Promise<void> {
-    await this.repo.save(token);
+    await this._repo.save(token);
   }
 
   public async findById(id: string): Promise<ResetToken | null> {
-    const result = await this.repo.findOne({
+    const result = await this._repo.findOne({
       where: {
         id: id,
       },
@@ -28,7 +28,7 @@ export default class PasswordResetRepositoryImpl implements IPasswordResetTokenR
   }
 
   public async findUserByToken(token: string): Promise<{ user: User; token: ResetToken } | null> {
-    const refreshToken = await this.repo.findOne({
+    const refreshToken = await this._repo.findOne({
       where: {
         token,
         // isUsed: false,
@@ -40,11 +40,11 @@ export default class PasswordResetRepositoryImpl implements IPasswordResetTokenR
   }
 
   public async updateToken(tokenId: string, token: Partial<ResetToken>): Promise<void> {
-    await this.repo.update(tokenId, token);
+    await this._repo.update(tokenId, token);
   }
 
   public async deleteExpiredAndUsedTokens(): Promise<void> {
-    await this.repo.delete({
+    await this._repo.delete({
       isUsed: true,
       expiresAt: LessThan(new Date()),
     });

@@ -1,6 +1,6 @@
 import { Metadata } from '@grpc/grpc-js';
 /**
- * Extracts selected values from gRPC Metadata using a mapping object.
+ * Extracts values from gRPC Metadata using a mapping object.
  *
  * @template T - A mapping from your result keys to metadata keys.
  * @param meta - The gRPC Metadata object.

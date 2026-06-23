@@ -1,6 +1,4 @@
-import { IRefreshToken } from '../interfaces/refresh-token';
-
-export class RefreshToken implements IRefreshToken {
+export class RefreshToken {
   public createdAt: Date;
   public constructor(
     public readonly id: string,

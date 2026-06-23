@@ -1,8 +1,8 @@
 import { Time } from '@/shared/constants/time';
-import { LoggingService } from '../observability/logging/logging.service';
+import { LoggerService } from '../observability/logger/logger.service';
 import { getEnvs } from '@/shared/utils/getEnv';
 import Redis, { ChainableCommander } from 'ioredis';
-import { ICacheService } from '@/application/services/cache.service';
+import { ICacheService } from '@/application/adaptors/cache.service';
 
 const { REDIS_DB, REDIS_HOST, REDIS_KEY_PREFIX, REDIS_PASSWORD, REDIS_PORT } = getEnvs({
   REDIS_PORT: 6379,
@@ -15,7 +15,7 @@ const { REDIS_DB, REDIS_HOST, REDIS_KEY_PREFIX, REDIS_PASSWORD, REDIS_PORT } = g
 export class RedisCacheService implements ICacheService {
   private static instance: RedisCacheService;
   private client: Redis;
-  private logger = LoggingService.getInstance('RedisCacheService');
+  private logger = LoggerService.getInstance('RedisCacheService');
 
   // Simple in-memory statistics
   private hits = 0;

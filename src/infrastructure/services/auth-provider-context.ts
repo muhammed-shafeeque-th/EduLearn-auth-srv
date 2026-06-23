@@ -1,6 +1,6 @@
-import IAuthProviderStrategy from '@/application/services/auth-provider.strategy';
+import IAuthProviderStrategy from '@/application/adaptors/auth-provider.strategy';
 import { injectable } from 'inversify';
-import IAuthProviderContext, { AuthProvider } from '@/application/services/auth-provider.service';
+import IAuthProviderContext, { AuthProvider } from '@/application/adaptors/auth-provider.service';
 import GoogleAuthProviderImpl from './google-auth-provider';
 
 @injectable()

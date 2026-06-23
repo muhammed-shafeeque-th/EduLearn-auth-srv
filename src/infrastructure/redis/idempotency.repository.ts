@@ -1,4 +1,4 @@
-import { ICacheService } from '@/application/services/cache.service';
+import { ICacheService } from '@/application/adaptors/cache.service';
 import { IIdempotencyRepository } from '@/domain/repository/idempotency.repository';
 import { TYPES } from '@/shared/constants/identifiers';
 import { inject, injectable } from 'inversify';

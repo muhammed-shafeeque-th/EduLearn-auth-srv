@@ -5,42 +5,45 @@ import HashServiceImpl from '../services/hash.service';
 import UUIDServiceImpl from '../services/uuid.service';
 import RefreshTokenRepositoryImpl from '../database/repositories/refresh-token.repository';
 import TokenServiceImpl from '../services/token.service';
-import RegisterUserUseCaseImpl from '@/application/use-cases/register-user.usecase';
-import LoginUserUseCaseImpl from '@/application/use-cases/login-user.usecase';
-import VerifyUserUseCaseImpl from '@/application/use-cases/verify-user.usecase';
-import Auth2SignUseCaseImpl from '@/application/use-cases/auth2-sign.usecase';
-import LogoutUseCaseImpl from '@/application/use-cases/logout.usecase';
+import RegisterUserUseCaseImpl from '@/application/use-cases/user/impls/register-user.usecase';
+import LoginUserUseCaseImpl from '@/application/use-cases/user/impls/login-user.usecase';
+import VerifyUserUseCaseImpl from '@/application/use-cases/user/impls/verify-user.usecase';
+import Auth2SignUseCaseImpl from '@/application/use-cases/user/impls/auth2-sign.usecase';
+import LogoutUseCaseImpl from '@/application/use-cases/user/impls/logout.usecase';
 
 import AuthController from '@/presentation/controllers/auth.controller';
-import RefreshTokenUseCaseImpl from '@/application/use-cases/refresh-token.usecase';
+import RefreshTokenUseCaseImpl from '@/application/use-cases/user/impls/refresh-token.usecase';
 
-import { TracingService } from '../observability/tracing/trace.service';
-import { LoggingService } from '../observability/logging/logging.service';
-import { initializeTracer } from '../observability/tracing/setup';
-import { MetricsService } from '../observability/metrics/metrics.service';
+import { TraceService } from '../observability/trace/trace.service';
+import { initializeTracer } from '../observability/trace/setup';
+import { MetricService } from '../observability/metric/metric.service';
 import { IRefreshTokenRepository } from '@/domain/repository/refresh-token.repository';
-import ChangePasswordUseCaseImpl from '@/application/use-cases/change-password.use-case';
-import ResetPasswordUseCaseImpl from '@/application/use-cases/reset-password.use-case';
-import ForgotPasswordUseCaseImpl from '@/application/use-cases/forgot-password.usecase';
+import ChangePasswordUseCaseImpl from '@/application/use-cases/user/impls/change-password.use-case';
+import ResetPasswordUseCaseImpl from '@/application/use-cases/user/impls/reset-password.use-case';
+import ForgotPasswordUseCaseImpl from '@/application/use-cases/user/impls/forgot-password.usecase';
 import { IPasswordResetTokenRepository } from '@/domain/repository/reset-token.repository';
 import PasswordResetRepositoryImpl from '../database/repositories/password-reset-token.repository';
 import { EventConsumerController } from '@/presentation/controllers/event.consumer.controller';
-import IEventPublisher from '@/application/services/event-publisher.service';
+import IEventPublisher from '@/application/adaptors/event-publisher.service';
 import { EventPublisherService } from '../services/event-publisher.service';
 import { defaultConfig, KafkaManager } from '../kafka';
-import UpdateUserUseCaseImpl from '@/application/use-cases/update-user.use-case';
+import UpdateUserUseCaseImpl from '@/application/use-cases/user/impls/update-user.use-case';
 import AuthProviderContextImpl from '../services/auth-provider-context';
-import RegisterInstructorUseCaseImpl from '@/application/use-cases/register-instructor.use-case';
+import RegisterInstructorUseCaseImpl from '@/application/use-cases/user/impls/register-instructor.use-case';
 import { RedisCacheService } from '../redis/cache.service';
 import { HandlebarsTemplateRendererAdapter } from '../services/template-renderer';
-import AccountUnblockedUseCaseImpl from '@/application/use-cases/account-unblocked.use-case';
-import AccountBlockedUseCaseImpl from '@/application/use-cases/account-blocked.use-case';
-import AdminLoginUseCaseImpl from '@/application/use-cases/admin/admin-login.usecase';
-import AdminRefreshTokenUseCaseImpl from '@/application/use-cases/admin/admin-refresh.usecase';
+import AccountUnblockedUseCaseImpl from '@/application/use-cases/user/impls/account-unblocked.use-case';
+import AccountBlockedUseCaseImpl from '@/application/use-cases/user/impls/account-blocked.use-case';
+import AdminLoginUseCaseImpl from '@/application/use-cases/admin/impls/admin-login.usecase';
+import AdminRefreshTokenUseCaseImpl from '@/application/use-cases/admin/impls/admin-refresh.usecase';
 import { IIdempotencyRepository } from '@/domain/repository/idempotency.repository';
 import { RedisIdempotencyRepository } from '../redis/idempotency.repository';
-import InstructorUnblockedUseCaseImpl from '@/application/use-cases/instructor-unblocked.use-case';
-import InstructorBlockedUseCaseImpl from '@/application/use-cases/instructor-blocked.use-case';
+import InstructorUnblockedUseCaseImpl from '@/application/use-cases/user/impls/instructor-unblocked.use-case';
+import InstructorBlockedUseCaseImpl from '@/application/use-cases/user/impls/instructor-blocked.use-case';
+import { ITraceService } from '@/application/adaptors/trace.service';
+import { ILoggerService } from '@/application/adaptors/logger.service';
+import { IMetricService } from '@/application/adaptors/metric.service';
+import { LoggerService } from '../observability/logger/logger.service';
 
 const container = new Container();
 initializeTracer();
@@ -97,18 +100,18 @@ container.bind(TYPES.IRefreshTokenUseCase).to(RefreshTokenUseCaseImpl);
 
 // Bind observability services
 container
-  .bind<TracingService>(TYPES.TracingService)
+  .bind<ITraceService>(TYPES.TraceService)
   .toDynamicValue(() => {
-    return TracingService.getInstance();
+    return TraceService.getInstance();
   })
   .inSingletonScope();
 container
-  .bind<LoggingService>(TYPES.LoggingService)
+  .bind<ILoggerService>(TYPES.LoggerService)
   .toDynamicValue(() => {
-    return LoggingService.getInstance();
+    return LoggerService.getInstance();
   })
   .inSingletonScope();
-container.bind<MetricsService>(TYPES.MetricsService).to(MetricsService).inSingletonScope();
+container.bind<IMetricService>(TYPES.MetricService).to(MetricService).inSingletonScope();
 
 //Bind services
 container.bind(TYPES.IHashService).to(HashServiceImpl).inSingletonScope();

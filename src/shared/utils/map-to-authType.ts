@@ -1,4 +1,4 @@
-import { AuthType } from '../types/user-types';
+import { AuthType } from '@/domain/entity/user';
 
 export const mapToAuthType = (type: string) => {
   switch (type) {

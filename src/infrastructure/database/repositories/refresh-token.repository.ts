@@ -2,24 +2,24 @@ import { IRefreshTokenRepository } from '@/domain/repository/refresh-token.repos
 import { MoreThan, LessThan, Repository } from 'typeorm';
 import { RefreshTokenEntity } from '../entities/refresh-token';
 import { AppDataSource } from '../data-source/data-source';
-import { IRefreshToken } from '@/domain/interfaces/refresh-token';
+import { IRefreshToken } from '@/domain/__interfaces/refresh-token';
 import { injectable } from 'inversify';
 import User from '@/domain/entity/user';
 import { RefreshToken } from '@/domain/entity/refresh-token';
 
 @injectable()
 export default class RefreshTokenRepositoryImpl implements IRefreshTokenRepository {
-  private repo: Repository<RefreshTokenEntity>;
+  private _repo: Repository<RefreshTokenEntity>;
   public constructor() {
-    this.repo = AppDataSource.getRepository(RefreshTokenEntity);
+    this._repo = AppDataSource.getRepository(RefreshTokenEntity);
   }
 
   public async upsertToken(token: RefreshToken): Promise<void> {
-    await this.repo.upsert(token, { conflictPaths: ['id'] });
+    await this._repo.upsert(token, { conflictPaths: ['id'] });
   }
 
   public async findByUserId(userId: string): Promise<RefreshToken | null> {
-    const result = await this.repo.findOne({
+    const result = await this._repo.findOne({
       where: {
         userId: userId,
       },
@@ -29,7 +29,7 @@ export default class RefreshTokenRepositoryImpl implements IRefreshTokenReposito
   }
 
   public async findUserByToken(token: string): Promise<{ user: User; token: RefreshToken } | null> {
-    const refreshToken = await this.repo.findOne({
+    const refreshToken = await this._repo.findOne({
       where: {
         token,
         revoked: false,
@@ -41,11 +41,11 @@ export default class RefreshTokenRepositoryImpl implements IRefreshTokenReposito
   }
 
   public async updateToken(userId: string, token: Partial<IRefreshToken>): Promise<void> {
-    await this.repo.update(userId, token);
+    await this._repo.update(userId, token);
   }
 
   public async deleteExpiredAndRevokedTokens(): Promise<void> {
-    await this.repo.delete({
+    await this._repo.delete({
       revoked: true,
       expiresAt: LessThan(new Date()),
     });
@@ -65,7 +65,7 @@ export default class RefreshTokenRepositoryImpl implements IRefreshTokenReposito
       updatedAt: user.updatedAt,
       lastLogin: user.lastLogin,
       authProvider: user.authProvider,
-      role: user.role,
+      roles: user.roles,
       status: user.status,
       username: user.username,
     });

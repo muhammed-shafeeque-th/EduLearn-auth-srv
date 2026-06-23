@@ -11,7 +11,7 @@ import { injectable } from 'inversify';
 import type { StringValue } from 'ms';
 import { getEnvs } from '@/shared/utils/getEnv';
 import { AuthenticationError } from '@/shared/errors/auth.error';
-import ITokenService from '@/application/services/token.service';
+import ITokenService from '@/application/adaptors/token.service';
 import { CustomJwtClaims, IJwtPayload } from '@/shared/types';
 
 // Export type for consumers (if needed)
@@ -101,7 +101,6 @@ export default class TokenServiceImpl implements ITokenService {
       ...claimsData,
       sub: claimsData.userId,
       tokenType: 'access',
-      // Optionally set exp from claimsData.expiry for short-lived access tokens if needed
     };
 
     const signOptions: SignOptions = {
@@ -113,9 +112,6 @@ export default class TokenServiceImpl implements ITokenService {
     return jwt.sign(claims, secret ?? JWT_ACCESS_TOKEN_SECRET.toString(), signOptions);
   }
 
-  /**
-   * Generate a Refresh Token. Optionally use expiry in claim or from ENV as fallback.
-   */
   public generateRefreshToken<T extends CustomJwtClaims>(claimsData: T, secret?: string): string {
     const standardClaims: JwtPayload = buildStandardJwtClaims();
     const claims: IJwtPayload = {
@@ -123,7 +119,6 @@ export default class TokenServiceImpl implements ITokenService {
       tokenType: 'refresh',
       ...claimsData,
       sub: claimsData.userId,
-      // Optionally set exp from claimsData.expiry for custom expiry (refresh token)
     };
 
     const signOptions: SignOptions = {
