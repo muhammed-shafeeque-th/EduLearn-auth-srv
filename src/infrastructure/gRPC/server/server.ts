@@ -1,4 +1,4 @@
-import { LoggingService } from '@/infrastructure/observability/logging/logging.service';
+import { LoggerService } from '@/infrastructure/observability/logger/logger.service';
 import * as grpc from '@grpc/grpc-js';
 import * as protoLoader from '@grpc/proto-loader';
 
@@ -25,7 +25,7 @@ export class GrpcServer<T extends grpc.UntypedServiceImplementation> {
   private server: grpc.Server;
   private proto: any;
   private config: GrpcServerConfig;
-  private logger = LoggingService.getInstance();
+  private logger = LoggerService.getInstance();
 
   public constructor(config: GrpcServerConfig, controllers: T) {
     this.config = {
