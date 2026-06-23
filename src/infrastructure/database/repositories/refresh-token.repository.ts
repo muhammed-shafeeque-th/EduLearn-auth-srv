@@ -2,7 +2,6 @@ import { IRefreshTokenRepository } from '@/domain/repository/refresh-token.repos
 import { MoreThan, LessThan, Repository } from 'typeorm';
 import { RefreshTokenEntity } from '../entities/refresh-token';
 import { AppDataSource } from '../data-source/data-source';
-import { IRefreshToken } from '@/domain/__interfaces/refresh-token';
 import { injectable } from 'inversify';
 import User from '@/domain/entity/user';
 import { RefreshToken } from '@/domain/entity/refresh-token';
@@ -40,7 +39,7 @@ export default class RefreshTokenRepositoryImpl implements IRefreshTokenReposito
     return refreshToken ? this.mapToDomainWithUser(refreshToken) : null;
   }
 
-  public async updateToken(userId: string, token: Partial<IRefreshToken>): Promise<void> {
+  public async updateToken(userId: string, token: Partial<RefreshToken>): Promise<void> {
     await this._repo.update(userId, token);
   }
 
