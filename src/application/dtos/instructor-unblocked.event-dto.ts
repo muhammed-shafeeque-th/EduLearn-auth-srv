@@ -3,17 +3,16 @@ import { IsEmail, IsNotEmpty, IsString, IsOptional } from 'class-validator';
 import BaseEventDto from './base-event.dto';
 import { BaseEvent } from '@/domain/events/types/base-event';
 
-export interface InstructorUnblockedEvent
-  extends BaseEvent<{
-    userId: string;
-    email: string;
-    role: string;
-    status: string;
-    firstName?: string;
-    avatar?: string;
-    roles?: string[];
-    roleStatus?: Record<string, string>;
-  }> {}
+export interface InstructorUnblockedEvent extends BaseEvent<{
+  userId: string;
+  email: string;
+  role: string;
+  status: string;
+  firstName?: string;
+  avatar?: string;
+  roles?: string[];
+  roleStatus?: Record<string, string>;
+}> {}
 
 export class InstructorUnblockedDtoPayload {
   @IsString()
