@@ -1,4 +1,4 @@
-import IUUIDService from '@/application/services/uuid.service';
+import IUUIDService from '@/application/adaptors/uuid.service';
 import { injectable } from 'inversify';
 import { v4 as uuidv4 } from 'uuid';
 

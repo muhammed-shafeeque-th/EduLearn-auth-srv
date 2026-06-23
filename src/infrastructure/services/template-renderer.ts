@@ -1,6 +1,6 @@
 import Handlebars, { TemplateDelegate } from 'handlebars';
-import { ITemplateRenderer } from '@/application/services/template-renderer';
-import { ICacheService } from '@/application/services/cache.service';
+import { ITemplateRenderer } from '@/application/adaptors/template-renderer';
+import { ICacheService } from '@/application/adaptors/cache.service';
 import * as fs from 'fs/promises';
 import * as path from 'path';
 import { inject } from 'inversify';
