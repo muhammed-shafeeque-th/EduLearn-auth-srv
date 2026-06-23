@@ -1,7 +1,6 @@
 import { IsEmail } from 'class-validator';
-import { IUser } from '@/domain/interfaces/user';
 
-export default class VerifyUserDto implements Partial<IUser> {
+export default class VerifyUserDto {
   @IsEmail({}, { message: 'Invalid email format' })
   email!: string;
 
