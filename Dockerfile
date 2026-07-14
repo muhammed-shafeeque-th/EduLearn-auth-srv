@@ -1,61 +1,95 @@
-# Stage 1: Build
-FROM node:20-alpine AS builder
+# Stage 1: Builder
+FROM node:20.19.4-alpine3.22 AS base
 
 WORKDIR /app
 
-# Install build dependencies
-RUN apk add --no-cache python3 make g++
+ENV NODE_ENV=production
 
-# Install dependencies
+RUN corepack enable
+
+# Stage 2: Dependency
+FROM base AS deps
+
+ENV NODE_ENV=development
+
+
+# Install build essentials (for native deps like bcrypt)
+RUN apk add --no-cache \
+    python3 \
+    make \
+    g++ \
+    curl \
+    libc6-compat
+# Copy package files first for caching
 COPY package.json yarn.lock ./
-RUN yarn install --frozen-lockfile
 
-# Copy the rest of the application code
+# Use cache mount for faster repeated builds (BuildKit)
+RUN --mount=type=cache,target=/usr/local/share/.cache/yarn \
+    yarn install --frozen-lockfile --ignore-optional
+
+# Stage 2: Dependency
+FROM deps AS builder
+
+# Copy source and configs
 COPY tsconfig*.json ./
 COPY src ./src
-
-# Copy proto files
 COPY proto ./proto
 
-# Build the TypeScript app
+# Build (keep your existing build for stability)
 RUN yarn run build
 
+# Prune to production deps in builder
+RUN yarn install --production --frozen-lockfile --ignore-optional
 
-# Stage 2: Lightweight production image
-FROM node:20-alpine
+
+#  Cleanup unnecessary files from node_modules with node-prune
+ARG NODE_PRUNE_VERSION=v1.0.2
+
+# RUN wget -q \
+#     https://github.com/tj/node-prune/releases/download/${NODE_PRUNE_VERSION}/node-prune_${NODE_PRUNE_VERSION#v}_Linux_x86_64.tar.gz \
+#     -O /tmp/node-prune.tar.gz \
+#  && tar -xzf /tmp/node-prune.tar.gz -C /usr/local/bin \
+# && chmod +x /usr/local/bin/node-prune \
+
+RUN  apk add --no-cache curl \
+  && curl -sfL https://gobinaries.com/tj/node-prune | sh -s -- -b /usr/local/bin \
+  && node-prune \
+  && yarn cache clean \
+  && rm -rf \
+       /tmp/* \
+       /root/.cache \
+       /usr/local/share/.cache
+
+# Stage 2: Runtime (Lightweight)
+FROM node:20.19.4-alpine3.22 AS runner
 
 WORKDIR /app
 
-#  Create non-root user in final stage
-RUN addgroup -S appgroup && adduser -S appuser -G appgroup
+ENV NODE_ENV=production
 
-# Copy built files and set ownership
-COPY --from=builder --chown=appuser:appgroup /app/dist ./dist
-COPY --from=builder --chown=appuser:appgroup /app/package.json ./package.json
-COPY --from=builder --chown=appuser:appgroup /app/yarn.lock ./yarn.lock
-# Copy proto files
-COPY --from=builder --chown=appuser:appgroup /app/proto ./proto
-# Copy template files (hbs)
-COPY --from=builder --chown=appuser:appgroup /app/src/shared/templates ./dist/shared/templates
 
-# Install only production dependencies
-RUN yarn install \
-    --production \
-    --ignore-optional \
-    --frozen-lockfile
+LABEL org.opencontainers.image.title="edulearn-auth"
+LABEL org.opencontainers.image.description="EduLearn Authentication Service"
+LABEL org.opencontainers.image.source="https://github.com/muhammed-shafeeque-th/Edulearn-auth"
 
-# Install runtime tools
-# RUN apk add --no-cache tini curl
+# Non-root user
+RUN addgroup -S edulearn_admin && adduser -S edulearn_user -G edulearn_admin
 
-# Create logs directory and set permissions
-RUN mkdir -p /app/logs && chown appuser:appgroup /app/logs
+# Copy only essentials from builder
+COPY --from=builder --chown=edulearn_user:edulearn_admin /app/dist ./dist
+COPY --from=builder --chown=edulearn_user:edulearn_admin /app/node_modules ./node_modules
+COPY --from=builder --chown=edulearn_user:edulearn_admin /app/package.json ./
+COPY --from=builder --chown=edulearn_user:edulearn_admin /app/proto ./proto
 
-# Switch to non-root user
-USER appuser
+# Copy Handlebars templates (adjust path if needed)
+COPY --from=builder --chown=edulearn_user:edulearn_admin /app/src/shared/templates ./dist/shared/templates
 
-# Expose port
+# Logs dir
+RUN mkdir -p /app/logs && chown edulearn_user:edulearn_admin /app/logs
+
+USER edulearn_user
+
 EXPOSE 4000
 
-# Start app
-# ENTRYPOINT ["/sbin/tini", "--"]
-CMD ["yarn", "run", "start"]
+# Direct start (no yarn overhead, better signal handling)
+CMD ["node", "dist/index.js"]
