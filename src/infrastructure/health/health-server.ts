@@ -1,81 +1,21 @@
-import http from 'http';
-import { RedisCacheService } from '../redis/cache.service';
-import { AppDataSource } from '../database/data-source/data-source';
-import { LoggerService } from '../observability/logger/logger.service';
+import { TYPES } from '@/shared/constants/identifiers';
+import { getEnvs, HealthServer, IHealthCheck } from '@edulearn/core';
+import { inject, injectable } from 'inversify';
 
-const logger = LoggerService.getInstance();
+const { HEALTH_PORT } = getEnvs({ HEALTH_PORT: 8081 });
 
-export function startHealthServer(
-  redis: RedisCacheService,
-  db: typeof AppDataSource,
-  port = 8080,
-): void {
-  const server = http.createServer(async (req, res) => {
-    if (req.url === '/liveness') {
-      res.writeHead(200, { 'content-type': 'application/json' });
-      res.end(JSON.stringify({ status: 'alive', timestamp: new Date().toISOString() }));
-      return;
-    }
+@injectable()
+export class AppHealthServer {
+  private readonly healthServer: HealthServer;
 
-    if (req.url === '/readiness') {
-      let ready = true;
+  public constructor(
+    @inject(TYPES.DBHealthCheck) dbChecker: IHealthCheck,
+    @inject(TYPES.RedisHealthCheck) redisChecker: IHealthCheck,
+  ) {
+    this.healthServer = new HealthServer({ port: Number(HEALTH_PORT) }, [dbChecker, redisChecker]);
+  }
 
-      // DB check
-      try {
-        await db.query('SELECT 1');
-      } catch {
-        ready = false;
-      }
-      // Redis check
-      try {
-        await redis.ping();
-      } catch {
-        ready = false;
-      }
-      res.writeHead(ready ? 200 : 503, { 'content-type': 'application/json' });
-      res.end(
-        JSON.stringify({
-          status: ready ? 'ready' : 'not-ready',
-          timestamp: new Date().toISOString(),
-        }),
-      );
-      return;
-    }
-
-    if (req.url === '/health') {
-      const health: Record<string, boolean> = {};
-
-      //DB check
-      try {
-        await db.query('SELECT 1');
-        health.db = true;
-      } catch {
-        health.db = false;
-      }
-
-      // Redis check
-      try {
-        await redis.ping();
-        health.redis = true;
-      } catch {
-        health.redis = false;
-      }
-      const allHealthy = Object.values(health).every(Boolean);
-      res.writeHead(allHealthy ? 200 : 503, { 'content-type': 'application/json' });
-      res.end(
-        JSON.stringify({
-          status: allHealthy ? 'ok' : 'unhealthy',
-          dependencies: health,
-          timestamp: new Date().toISOString(),
-        }),
-      );
-      return;
-    }
-    res.writeHead(404);
-    res.end();
-  });
-
-  server.listen(port, () => {
-    logger.info(`[health-server] listening on port ${port}`, { ctx: 'startHealthServer' });
-  });
+  public initialize(): void {
+    this.healthServer.register();
+  }
 }
