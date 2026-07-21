@@ -1,89 +1,17 @@
 import { ITraceService } from '@/application/adaptors/trace.service';
+import { TYPES } from '@/shared/constants/identifiers';
 import { getEnvs } from '@/shared/utils/getEnv';
-import {
-  Span,
-  Tracer,
-  trace,
-  context,
-  Attributes,
-  SpanStatusCode,
-  Context,
-} from '@opentelemetry/api';
+import { TracerService } from '@edulearn/core';
+import { Span, trace, context, SpanStatusCode } from '@opentelemetry/api';
+import { inject, injectable } from 'inversify';
+import { NodeTracerProvider } from '@opentelemetry/sdk-trace-node';
 
 const { SERVICE_NAME } = getEnvs({ SERVICE_NAME: 'user-service' });
 
-export class TraceService implements ITraceService {
-  private static instance: TraceService;
-  private tracer: Tracer;
-
-  private constructor() {
-    this.tracer = trace.getTracer(SERVICE_NAME.toString());
-  }
-
-  public static getInstance(): TraceService {
-    if (!TraceService.instance) {
-      TraceService.instance = new TraceService();
-    }
-    return TraceService.instance;
-  }
-
-  public startActiveSpan<T>(
-    name: string,
-    fn: (span: Span) => T | Promise<T>,
-    attributes?: Attributes,
-  ): T | Promise<T> {
-    return this.tracer.startActiveSpan(name, (span) => {
-      if (attributes) {
-        span.setAttributes(attributes);
-      }
-      try {
-        const result = fn(span);
-        if (result instanceof Promise) {
-          return result
-            .then((res) => {
-              span.setStatus({
-                code: SpanStatusCode.OK,
-                message: 'Operation has been successful',
-              });
-              return res;
-            })
-            .catch((error) => {
-              span.recordException(error);
-              span.setStatus({
-                code: SpanStatusCode.ERROR,
-                message: error.message || 'Operation failed',
-              });
-              throw error;
-            })
-            .finally(() => {
-              span.end();
-            });
-        }
-        span.setStatus({
-          code: SpanStatusCode.OK,
-          message: 'Operation has been successful',
-        });
-        return result;
-      } catch (error: any) {
-        span.recordException(error);
-        span.setStatus({ code: SpanStatusCode.ERROR, message: error.message });
-        throw error;
-      }
-    });
-  }
-
-  startSpan(
-    name: string,
-    attributes?: Attributes | Record<string | any, string | any>,
-    contextOverride?: Context,
-  ): Span {
-    const ctx = contextOverride || context.active();
-    const span = this.tracer.startSpan(name, { attributes }, ctx);
-    return span;
-  }
-
-  endSpan(span: Span): void {
-    span.end();
+@injectable()
+export class TraceService extends TracerService implements ITraceService {
+  public constructor(@inject(TYPES.TracerProvider) traceProvider: NodeTracerProvider) {
+    super(traceProvider.getTracer(SERVICE_NAME.toString()));
   }
 
   recordException(span: Span, error: any): void {
