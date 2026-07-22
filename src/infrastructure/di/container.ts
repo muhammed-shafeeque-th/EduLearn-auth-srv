@@ -11,11 +11,10 @@ import VerifyUserUseCaseImpl from '@/application/use-cases/user/impls/verify-use
 import Auth2SignUseCaseImpl from '@/application/use-cases/user/impls/auth2-sign.usecase';
 import LogoutUseCaseImpl from '@/application/use-cases/user/impls/logout.usecase';
 
-import AuthController from '@/presentation/controllers/auth.controller';
+import AuthController from '@/presentation/grpc/grpc.controller';
 import RefreshTokenUseCaseImpl from '@/application/use-cases/user/impls/refresh-token.usecase';
 
 import { TraceService } from '../observability/trace/trace.service';
-import { initializeTracer } from '../observability/trace/setup';
 import { MetricService } from '../observability/metric/metric.service';
 import { IRefreshTokenRepository } from '@/domain/repository/refresh-token.repository';
 import ChangePasswordUseCaseImpl from '@/application/use-cases/user/impls/change-password.use-case';
@@ -23,10 +22,10 @@ import ResetPasswordUseCaseImpl from '@/application/use-cases/user/impls/reset-p
 import ForgotPasswordUseCaseImpl from '@/application/use-cases/user/impls/forgot-password.usecase';
 import { IPasswordResetTokenRepository } from '@/domain/repository/reset-token.repository';
 import PasswordResetRepositoryImpl from '../database/repositories/password-reset-token.repository';
-import { EventConsumerController } from '@/presentation/controllers/event.consumer.controller';
+import { EventConsumerController } from '@/presentation/kafka/event.consumer.controller';
 import IEventPublisher from '@/application/adaptors/event-publisher.service';
 import { EventPublisherService } from '../services/event-publisher.service';
-import { defaultConfig, KafkaManager } from '../kafka';
+import { defaultConfig, KafkaClient, KafkaPublisher } from '../kafka';
 import UpdateUserUseCaseImpl from '@/application/use-cases/user/impls/update-user.use-case';
 import AuthProviderContextImpl from '../services/auth-provider-context';
 import RegisterInstructorUseCaseImpl from '@/application/use-cases/user/impls/register-instructor.use-case';
@@ -44,23 +43,49 @@ import { ITraceService } from '@/application/adaptors/trace.service';
 import { ILoggerService } from '@/application/adaptors/logger.service';
 import { IMetricService } from '@/application/adaptors/metric.service';
 import { LoggerService } from '../observability/logger/logger.service';
+import { getEnvs, initializeTracer } from '@edulearn/core';
+import { registerShutdown as shutdownTracer } from '@edulearn/core';
+import { AppDataSource } from '../database/data-source/data-source';
+import { AppHealthServer } from '../health/health-server';
+import { RedisHealthCheck } from '../health/checks/redis.check';
+import { DBHealthCheck } from '../health/checks/db.check';
+import { GrpcAppServer } from '@/presentation/grpc/server';
+import { KafkaAppServer } from '@/presentation/kafka/kafka.server';
+import { AuthApplication } from '@/app';
+
+const { NODE_ENV, SERVICE_NAME, COLLECTOR_URL } = getEnvs({
+  NODE_ENV: 'development',
+  SERVICE_NAME: 'auth-service',
+  COLLECTOR_URL: 'http://localhost:4318/v1/traces',
+});
 
 const container = new Container();
-initializeTracer();
+
+container
+  .bind<ReturnType<typeof initializeTracer>>(TYPES.TracerProvider)
+  .toDynamicValue(() =>
+    initializeTracer({
+      environment: String(NODE_ENV),
+      serviceName: String(SERVICE_NAME),
+      collectorUrl: String(COLLECTOR_URL),
+    }),
+  )
+  .inSingletonScope();
+shutdownTracer(container.get(TYPES.TracerProvider));
 
 /**
  * Bind Interfaces to implementations
  */
 
-// Bind Kafka Manager
-container
-  .bind<KafkaManager>(TYPES.KafkaManager)
-  .toDynamicValue(() => {
-    return KafkaManager.getInstance(defaultConfig);
-  })
-  .inSingletonScope();
+// Bind DB
+container.bind<AppDataSource>(TYPES.DBDataSource).to(AppDataSource).inSingletonScope();
 
-//Bind repositories
+// Bind Kafka
+container.bind(TYPES.KafkaConfigs).toConstantValue(defaultConfig);
+container.bind(TYPES.KafkaClient).to(KafkaClient).inSingletonScope();
+container.bind(TYPES.KafkaPublisher).to(KafkaPublisher).inSingletonScope();
+
+//BiKafkaPublishernd repositories
 container.bind(TYPES.IUserRepository).to(PostgresUserRepositoryImpl).inSingletonScope();
 container
   .bind<IRefreshTokenRepository>(TYPES.IRefreshTokenRepository)
@@ -99,12 +124,7 @@ container.bind(TYPES.IRegisterInstructorUseCase).to(RegisterInstructorUseCaseImp
 container.bind(TYPES.IRefreshTokenUseCase).to(RefreshTokenUseCaseImpl);
 
 // Bind observability services
-container
-  .bind<ITraceService>(TYPES.TraceService)
-  .toDynamicValue(() => {
-    return TraceService.getInstance();
-  })
-  .inSingletonScope();
+container.bind<ITraceService>(TYPES.TraceService).to(TraceService).inSingletonScope();
 container
   .bind<ILoggerService>(TYPES.LoggerService)
   .toDynamicValue(() => {
@@ -118,10 +138,7 @@ container.bind(TYPES.IHashService).to(HashServiceImpl).inSingletonScope();
 container.bind(TYPES.ITemplateRenderer).to(HandlebarsTemplateRendererAdapter).inSingletonScope();
 container.bind(TYPES.IUUIDService).to(UUIDServiceImpl).inSingletonScope();
 container.bind(TYPES.ITokenService).to(TokenServiceImpl).inSingletonScope();
-container
-  .bind(TYPES.ICacheService)
-  .toDynamicValue(() => RedisCacheService.getInstance())
-  .inSingletonScope();
+container.bind(TYPES.ICacheService).to(RedisCacheService).inSingletonScope();
 container.bind(TYPES.IAuthProviderContext).to(AuthProviderContextImpl).inSingletonScope();
 container
   .bind<IEventPublisher>(TYPES.IEventPublisherService)
@@ -129,7 +146,19 @@ container
   .inSingletonScope();
 
 //Bind controllers
-container.bind(TYPES.IAuthServiceController).to(AuthController).inSingletonScope();
+container.bind(TYPES.IGrpcAppController).to(AuthController).inSingletonScope();
 container.bind(TYPES.IEventConsumerController).to(EventConsumerController).inSingletonScope();
+
+// Servers
+container.bind(TYPES.HealthServer).to(AppHealthServer).inSingletonScope();
+container.bind(TYPES.GrpcAppServer).to(GrpcAppServer).inSingletonScope();
+container.bind(TYPES.KafkaAppServer).to(KafkaAppServer).inSingletonScope();
+
+// Health check
+container.bind(TYPES.RedisHealthCheck).to(RedisHealthCheck);
+container.bind(TYPES.DBHealthCheck).to(DBHealthCheck);
+
+// App
+container.bind(TYPES.Application).to(AuthApplication);
 
 export { container };
