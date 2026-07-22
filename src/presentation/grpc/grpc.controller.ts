@@ -2,8 +2,8 @@ import { sendUnaryData, ServerUnaryCall } from '@grpc/grpc-js';
 import { inject, injectable } from 'inversify';
 import { TYPES } from '@/shared/constants/identifiers';
 import { validateDto } from '@/shared/utils/validator';
-import { ResponseMapper } from '../mappers/response-mapper';
-import { BaseError } from '@/shared/errors/base-error';
+import { ResponseMapper } from './mappers/response-mapper';
+// import { BaseError } from '@/shared/errors/base-error';
 
 import RegisterUserDto from '@/application/dtos/register-user.dto';
 import LoginUserDto from '@/application/dtos/login-user.dto';
@@ -62,8 +62,8 @@ type GrpcCall<TRequest, TResponse> = ServerUnaryCall<TRequest, TResponse>;
 type GrpcCallback<TResponse> = sendUnaryData<TResponse>;
 
 @injectable()
-export default class AuthController {
-  constructor(
+export default class GrpcAuthController {
+  public constructor(
     @inject(TYPES.IRegisterUserUseCase) private readonly _registerUserUseCase: IRegisterUserUseCase,
     @inject(TYPES.ILoginUserUseCase) private readonly _loginUserUseCase: ILoginUserUseCase,
     @inject(TYPES.ILogoutUserUseCase) private readonly _logoutUserUseCase: ILogoutUserUseCase,
@@ -82,46 +82,18 @@ export default class AuthController {
     @inject(TYPES.LoggerService) private readonly _logger: ILoggerService,
   ) {}
 
-  private handleWithError<TResponse>(
-    method: () => Promise<TResponse>,
-    callback: GrpcCallback<TResponse | { error: Error }>,
-  ) {
-    method().catch((err) => {
-      this._logger.warn('Error processing gRPC request', { error: err });
-      callback(GrpcErrorMapper.toGrpc(err));
-    });
-  }
-
-  private async runWithTracingSpan<TResponse>(
-    spanName: string,
-    logic: (span: any) => Promise<TResponse>,
-    callback: GrpcCallback<TResponse | { error: Error }>,
-  ) {
-    this.handleWithError(async () => {
-      return await this._tracer.startActiveSpan(spanName, async (span) => {
-        try {
-          const result = await logic(span);
-          callback(null, result);
-          return result;
-        } finally {
-          if (span?.end) span.end();
-        }
-      });
-    }, callback);
-  }
-
   public registerUser = (
     call: GrpcCall<RegisterUserRequest, RegisterUserResponse>,
     callback: GrpcCallback<RegisterUserResponse>,
   ): void => {
-    this.runWithTracingSpan(
-      'AuthController.RegisterUser',
+    this._runWithTracingSpan(
+      'GrpcAuthController.RegisterUser',
       async (span) => {
         getMetadataValues(call.metadata, { traceId: 'trace-id' });
 
         const { email, role, password, avatar, firstName, lastName, authType } = call.request;
         span?.setAttribute('user.email', email);
-        this._logger.debug('Handling RegisterUser', { ctx: AuthController.name, email });
+        this._logger.debug('Handling RegisterUser', { ctx: GrpcAuthController.name, email });
 
         const dto = RegisterUserDto.create({
           email,
@@ -152,11 +124,15 @@ export default class AuthController {
     call: GrpcCall<Auth2SignRequest, Auth2SignResponse>,
     callback: GrpcCallback<Auth2SignResponse>,
   ): void => {
-    this.runWithTracingSpan(
-      'AuthController.auth2Sign',
+    this._runWithTracingSpan(
+      'GrpcAuthController.auth2Sign',
       async (span) => {
         const { provider, token, authType } = call.request;
-        this._logger.debug('Handling auth2Sign', { provider, authType, ctx: AuthController.name });
+        this._logger.debug('Handling auth2Sign', {
+          provider,
+          authType,
+          ctx: GrpcAuthController.name,
+        });
         span?.setAttributes?.({ provider, token, authType });
 
         const dto = Auth2SignDto.create({ authType: authType as AuthType, token, provider });
@@ -175,12 +151,12 @@ export default class AuthController {
     call: GrpcCall<VerifyUserRequest, VerifyUserResponse>,
     callback: GrpcCallback<VerifyUserResponse>,
   ): void => {
-    this.runWithTracingSpan(
-      'AuthController.verifyUser',
+    this._runWithTracingSpan(
+      'GrpcAuthController.verifyUser',
       async (span) => {
         const { email } = call.request;
         span?.setAttribute('email', email);
-        this._logger.debug('Handling verifyUser', { email, ctx: AuthController.name });
+        this._logger.debug('Handling verifyUser', { email, ctx: GrpcAuthController.name });
 
         const verifyDto = VerifyUserDto.create({ email });
         await validateDto(verifyDto);
@@ -197,12 +173,12 @@ export default class AuthController {
     call: GrpcCall<AdminLoginRequest, AdminLoginResponse>,
     callback: GrpcCallback<AdminLoginResponse>,
   ): void => {
-    this.runWithTracingSpan(
-      'AuthController.adminLogin',
+    this._runWithTracingSpan(
+      'GrpcAuthController.adminLogin',
       async (span) => {
         const { email, password } = call.request;
         span?.setAttribute('email', email);
-        this._logger.debug('Handling adminLogin', { email, ctx: AuthController.name });
+        this._logger.debug('Handling adminLogin', { email, ctx: GrpcAuthController.name });
 
         const loginDto = AdminLoginDto.create({ email, password });
         await validateDto(loginDto);
@@ -220,11 +196,11 @@ export default class AuthController {
     call: GrpcCall<LoginUserRequest, LoginUserResponse>,
     callback: GrpcCallback<LoginUserResponse>,
   ): void => {
-    this.runWithTracingSpan(
-      'AuthController.loginUser',
+    this._runWithTracingSpan(
+      'GrpcAuthController.loginUser',
       async (span) => {
         const { email, password, rememberMe } = call.request;
-        this._logger.debug('Handling loginUser', { email, ctx: AuthController.name });
+        this._logger.debug('Handling loginUser', { email, ctx: GrpcAuthController.name });
         span?.setAttributes?.({ email });
 
         const loginDto = LoginUserDto.create({ email, password, rememberMe });
@@ -243,11 +219,11 @@ export default class AuthController {
     call: GrpcCall<LogoutUserRequest, LogoutUserResponse>,
     callback: GrpcCallback<LogoutUserResponse>,
   ): void => {
-    this.runWithTracingSpan(
-      'AuthController.logoutUser',
+    this._runWithTracingSpan(
+      'GrpcAuthController.logoutUser',
       async (span) => {
         const { userId } = call.request;
-        this._logger.debug('Handling logoutUser', { userId, ctx: AuthController.name });
+        this._logger.debug('Handling logoutUser', { userId, ctx: GrpcAuthController.name });
         span?.setAttributes?.({ userId });
 
         const logoutDto = LogoutUserDto.create({ userId });
@@ -268,8 +244,8 @@ export default class AuthController {
     call: GrpcCall<RefreshTokenRequest, RefreshTokenResponse>,
     callback: GrpcCallback<RefreshTokenResponse>,
   ): void => {
-    this.runWithTracingSpan(
-      'AuthController.refreshToken',
+    this._runWithTracingSpan(
+      'GrpcAuthController.refreshToken',
       async () => {
         const { refreshToken } = call.request;
 
@@ -289,8 +265,8 @@ export default class AuthController {
     call: GrpcCall<AdminRefreshRequest, AdminRefreshResponse>,
     callback: GrpcCallback<AdminRefreshResponse>,
   ): void => {
-    this.runWithTracingSpan(
-      'AuthController.adminRefresh',
+    this._runWithTracingSpan(
+      'GrpcAuthController.adminRefresh',
       async (span) => {
         const { refreshToken } = call.request;
         span?.setAttributes?.({ refreshToken });
@@ -312,8 +288,8 @@ export default class AuthController {
     call: GrpcCall<ChangePasswordRequest, ChangePasswordResponse>,
     callback: GrpcCallback<ChangePasswordResponse>,
   ): void => {
-    this.runWithTracingSpan(
-      'AuthController.changePassword',
+    this._runWithTracingSpan(
+      'GrpcAuthController.changePassword',
       async (span) => {
         const { userId, newPassword, oldPassword } = call.request;
         span?.setAttributes?.({ userId });
@@ -334,8 +310,8 @@ export default class AuthController {
     call: GrpcCall<ForgotPasswordRequest, ForgotPasswordResponse>,
     callback: GrpcCallback<ForgotPasswordResponse>,
   ): void => {
-    this.runWithTracingSpan(
-      'AuthController.forgotPassword',
+    this._runWithTracingSpan(
+      'GrpcAuthController.forgotPassword',
       async (span) => {
         const { email } = call.request;
         span?.setAttributes?.({ email });
@@ -367,8 +343,8 @@ export default class AuthController {
     call: GrpcCall<ResetPasswordRequest, ResetPasswordResponse>,
     callback: GrpcCallback<ResetPasswordResponse>,
   ): void => {
-    this.runWithTracingSpan(
-      'AuthController.resetPassword',
+    this._runWithTracingSpan(
+      'GrpcAuthController.resetPassword',
       async (span) => {
         const { token, confirmPassword, password } = call.request;
         span?.setAttributes?.({ token });
@@ -385,11 +361,39 @@ export default class AuthController {
     );
   };
 
-  private mapToError(error: BaseError): Error {
-    return {
-      code: error.errorCode,
-      message: error.message,
-      details: error.serializeErrors(),
-    };
+  private _handleWithError<TResponse>(
+    method: () => Promise<TResponse>,
+    callback: GrpcCallback<TResponse | { error: Error }>,
+  ) {
+    method().catch((err) => {
+      this._logger.warn('Error processing gRPC request', { error: err });
+      callback(GrpcErrorMapper.toGrpc(err));
+    });
   }
+
+  private async _runWithTracingSpan<TResponse>(
+    spanName: string,
+    logic: (span: any) => Promise<TResponse>,
+    callback: GrpcCallback<TResponse | { error: Error }>,
+  ) {
+    this._handleWithError(async () => {
+      return await this._tracer.startActiveSpan(spanName, async (span) => {
+        try {
+          const result = await logic(span);
+          callback(null, result);
+          return result;
+        } finally {
+          if (span?.end) span.end();
+        }
+      });
+    }, callback);
+  }
+
+  // private mapToError(error: BaseError): Error {
+  //   return {
+  //     code: error.errorCode,
+  //     message: error.message,
+  //     details: error.serializeErrors(),
+  //   };
+  // }
 }
