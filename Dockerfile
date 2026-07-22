@@ -1,25 +1,13 @@
-# Stage 1: Builder
-FROM node:20.19.4-alpine3.22 AS base
+ARG BASE_IMAGE=ghcr.io/muhammed-shafeeque-th/edulearn-node:22
+
+# Stage 1: Dependency
+FROM ${BASE_IMAGE} AS deps
 
 WORKDIR /app
-
-ENV NODE_ENV=production
-
-RUN corepack enable
-
-# Stage 2: Dependency
-FROM base AS deps
 
 ENV NODE_ENV=development
 
 
-# Install build essentials (for native deps like bcrypt)
-RUN apk add --no-cache \
-    python3 \
-    make \
-    g++ \
-    curl \
-    libc6-compat
 # Copy package files first for caching
 COPY package.json yarn.lock ./
 
@@ -33,7 +21,6 @@ FROM deps AS builder
 # Copy source and configs
 COPY tsconfig*.json ./
 COPY src ./src
-COPY proto ./proto
 
 # Build (keep your existing build for stability)
 RUN yarn run build
@@ -45,12 +32,6 @@ RUN yarn install --production --frozen-lockfile --ignore-optional
 #  Cleanup unnecessary files from node_modules with node-prune
 ARG NODE_PRUNE_VERSION=v1.0.2
 
-# RUN wget -q \
-#     https://github.com/tj/node-prune/releases/download/${NODE_PRUNE_VERSION}/node-prune_${NODE_PRUNE_VERSION#v}_Linux_x86_64.tar.gz \
-#     -O /tmp/node-prune.tar.gz \
-#  && tar -xzf /tmp/node-prune.tar.gz -C /usr/local/bin \
-# && chmod +x /usr/local/bin/node-prune \
-
 RUN  apk add --no-cache curl \
   && curl -sfL https://gobinaries.com/tj/node-prune | sh -s -- -b /usr/local/bin \
   && node-prune \
@@ -61,12 +42,11 @@ RUN  apk add --no-cache curl \
        /usr/local/share/.cache
 
 # Stage 2: Runtime (Lightweight)
-FROM node:20.19.4-alpine3.22 AS runner
+FROM node:22.17.1-alpine3.22 AS runner
 
 WORKDIR /app
 
 ENV NODE_ENV=production
-
 
 LABEL org.opencontainers.image.title="edulearn-auth"
 LABEL org.opencontainers.image.description="EduLearn Authentication Service"
@@ -79,13 +59,10 @@ RUN addgroup -S edulearn_admin && adduser -S edulearn_user -G edulearn_admin
 COPY --from=builder --chown=edulearn_user:edulearn_admin /app/dist ./dist
 COPY --from=builder --chown=edulearn_user:edulearn_admin /app/node_modules ./node_modules
 COPY --from=builder --chown=edulearn_user:edulearn_admin /app/package.json ./
-COPY --from=builder --chown=edulearn_user:edulearn_admin /app/proto ./proto
 
-# Copy Handlebars templates (adjust path if needed)
+# Copy Handlebars templates
 COPY --from=builder --chown=edulearn_user:edulearn_admin /app/src/shared/templates ./dist/shared/templates
 
-# Logs dir
-RUN mkdir -p /app/logs && chown edulearn_user:edulearn_admin /app/logs
 
 USER edulearn_user
 
