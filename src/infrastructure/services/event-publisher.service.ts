@@ -2,13 +2,12 @@ import IEventPublisher from '@/application/adaptors/event-publisher.service';
 import { KafkaPublisher } from '../kafka/kafka.publisher';
 import { inject, injectable } from 'inversify';
 import { TYPES } from '@/shared/constants/identifiers';
-import { KafkaManager } from '../kafka';
 
 @injectable()
 export class EventPublisherService implements IEventPublisher {
-  private kafkaPublisher: KafkaPublisher;
-
-  public constructor(@inject(TYPES.KafkaManager) private readonly kafkaManager: KafkaManager) {}
+  public constructor(
+    @inject(TYPES.KafkaPublisher) private readonly kafkaPublisher: KafkaPublisher,
+  ) {}
 
   public async publish<T>(
     topic: string,
@@ -20,7 +19,7 @@ export class EventPublisherService implements IEventPublisher {
       timeout?: number;
     },
   ): Promise<void> {
-    this.initPublisher();
+    // this.initPublisher();
 
     await this.kafkaPublisher.send(topic, data, key, headers, options);
   }
@@ -37,15 +36,15 @@ export class EventPublisherService implements IEventPublisher {
       timeout?: number;
     },
   ): Promise<void> {
-    this.initPublisher();
+    // this.initPublisher();
 
     await this.kafkaPublisher.sendBatch(topic, messages, options);
   }
 
   // Lazy initialization
-  private initPublisher(): void {
-    if (!this.kafkaPublisher) {
-      this.kafkaPublisher = this.kafkaManager.getPublisher();
-    }
-  }
+  // private initPublisher(): void {
+  //   if (!this.kafkaPublisher) {
+  //     this.kafkaPublisher = this.kafkaPublisher.getPublisher();
+  //   }
+  // }
 }
