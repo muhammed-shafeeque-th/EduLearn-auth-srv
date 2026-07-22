@@ -1,115 +1,90 @@
-import { container } from './infrastructure/di/container';
 import { TYPES } from './shared/constants/identifiers';
-import { RedisCacheService } from './infrastructure/redis/cache.service';
 import './infrastructure/database/cron/delete-expired-tokens.cron';
-import path from 'path';
-import { startHealthServer } from './infrastructure/health/health-server';
-import { AppDataSource, initializeDb } from './infrastructure/database/data-source/data-source';
-import { GrpcServer } from './infrastructure/gRPC/server/server';
-import { getEnvs } from './shared/utils/getEnv';
-import { AuthServiceServer } from './infrastructure/gRPC/generated/auth_service';
-import { KafkaManager } from './infrastructure/kafka';
-import { LoggerService } from './infrastructure/observability/logger/logger.service';
+import { GrpcAppServer } from './presentation/grpc/server';
+import { ICacheService } from './application/adaptors/cache.service';
+import { inject, injectable } from 'inversify';
+import { AppDataSource } from './infrastructure/database/data-source/data-source';
+import { AppHealthServer } from './infrastructure/health/health-server';
+import { ILoggerService } from './application/adaptors/logger.service';
+import { KafkaAppServer } from './presentation/kafka/kafka.server';
 
-const { HEALTH_PORT, GRPC_PORT } = getEnvs({ HEALTH_PORT: 8081, GRPC_PORT: 50051 });
+@injectable()
+export class AuthApplication {
+  private isShuttingDown = false;
 
-export class App {
-  private server: GrpcServer<AuthServiceServer>;
-  private controllers: AuthServiceServer;
-  private redis: RedisCacheService;
-  private db: typeof AppDataSource;
-  private kafkaManager: KafkaManager;
-
-  private logger = LoggerService.getInstance('App');
+  public constructor(
+    @inject(TYPES.LoggerService) private readonly _logger: ILoggerService,
+    @inject(TYPES.HealthServer) private readonly _healthServer: AppHealthServer,
+    @inject(TYPES.DBDataSource) private readonly _appDatasource: AppDataSource,
+    @inject(TYPES.KafkaAppServer) private readonly _kafkaServer: KafkaAppServer,
+    @inject(TYPES.ICacheService) private readonly _cacheService: ICacheService,
+    @inject(TYPES.GrpcAppServer) private readonly _grpcAppServer: GrpcAppServer,
+  ) {}
 
   public async initialize(): Promise<void> {
     this.setupGlobalErrorHandlers();
-    await this.connectDB();
+    await this.initDb();
 
-    await this.setupKafka();
+    await this.initKafka();
 
-    await this.connectRedis();
-    this.setupControllers();
+    await this.initCache();
 
-    this.setupServer();
+    this.initGrpcSever();
 
-    startHealthServer(this.redis, this.db, Number(HEALTH_PORT));
-    this.logger.info('Application started successfully ');
-    // this.redis.logMetrics();
+    this.initHealthServer();
+    this._logger.info('Application started successfully ');
   }
 
-  private async setupKafka(): Promise<void> {
+  private async initKafka(): Promise<void> {
     try {
       // Initialize Kafka manager
-      this.kafkaManager = container.get(TYPES.KafkaManager);
-
-      // Initialize with event handlers
-      await this.kafkaManager.initializeHandlers([container.get(TYPES.IEventConsumerController)]);
+      this._kafkaServer.initialize();
     } catch (error) {
-      this.logger.error('Error while setting up Kafka ', { error });
+      this._logger.error('Error while initializing  Kafka ', { error });
+      throw error;
+    }
+  }
+  private async initHealthServer(): Promise<void> {
+    try {
+      // Initialize Kafka manager
+      this._healthServer.initialize();
+      this._logger.info('Health server initialized');
+    } catch (error) {
+      this._logger.error('Error while initializing health server ', { error });
+      throw error;
+    }
+  }
+  private async initDb(): Promise<void> {
+    try {
+      await this._appDatasource.initializeDb();
+      await this._appDatasource.dataSource.runMigrations();
+      this._logger.info('Connected to db');
+      // Initialize Kafka manager
+    } catch (error) {
+      this._logger.error('Error while Connecting DB ', { error });
       throw error;
     }
   }
 
-  private async connectDB(): Promise<void> {
-    try {
-      this.db = AppDataSource;
-      await initializeDb();
-      await this.db.runMigrations();
-      this.logger.info('Connected to db');
-      // Initialize Kafka manager
-    } catch (error) {
-      this.logger.error('Error while Connecting DB ', { error });
-      throw error;
-    }
-  }
-
-  private async connectRedis(): Promise<void> {
+  private async initCache(): Promise<void> {
     try {
       // Connect to redis
-      this.redis = RedisCacheService.getInstance();
+      this._cacheService.getClient().connect();
       // await this.redis.connect();
     } catch (error) {
-      this.logger.error('Error while connecting to Redis', { error });
+      this._logger.error('Error while connecting to Redis', { error });
       throw error;
     }
   }
 
-  private setupControllers(): void {
-    try {
-      this.controllers = container.get(TYPES.IAuthServiceController);
-    } catch (error) {
-      this.logger.error('Error while setting up controllers ', { error });
-      throw error;
-    }
-  }
-
-  private setupServer(): void {
-    // Initialize gRPC server
-    try {
-      this.logger.info(`gRPC server starting...`);
-      this.server = new GrpcServer<AuthServiceServer>(
-        {
-          protoPath: path.join(process.cwd(), 'proto', 'auth_service.proto'),
-          packageName: 'auth_service',
-          serviceName: 'AuthService',
-          port: Number(GRPC_PORT),
-        },
-        this.controllers,
-      );
-
-      this.server.start();
-      this.logger.info(`gRPC AuthService server started at port ${GRPC_PORT}`);
-    } catch (error) {
-      this.logger.error('Error while starting gRPC server ', { error });
-      throw error;
-    }
+  private initGrpcSever(): void {
+    this._grpcAppServer.initialize();
   }
 
   private setupGlobalErrorHandlers(): void {
     // Handle unhandled promise rejections
     process.on('unhandledRejection', (reason, promise) => {
-      this.logger.error('Unhandled Rejection at:', {
+      this._logger.error('Unhandled Rejection at:', {
         promise,
         reason,
         stack: reason instanceof Error ? reason.stack : undefined,
@@ -119,7 +94,7 @@ export class App {
 
     // Handle uncaught exceptions
     process.on('uncaughtException', (error) => {
-      this.logger.error('Uncaught Exception:', {
+      this._logger.error('Uncaught Exception:', {
         error: error.message,
         stack: error.stack,
       });
@@ -132,23 +107,27 @@ export class App {
   }
 
   public async shutdown(): Promise<void> {
+    if (this.isShuttingDown) {
+      return;
+    }
+
+    this.isShuttingDown = true;
+    this._logger.info('Shutting down Auth server...');
     try {
-      if (this.server) {
-        await this.server.shutdown();
-        this.logger.info('gRPC server stopped ');
-      }
+      await this._grpcAppServer.shutdown();
+      this._logger.info('gRPC server stopped ');
 
-      if (this.kafkaManager) {
-        await this.kafkaManager.shutdown();
-        this.logger.info('Kafka manager got shutdown');
-      }
+      await this._kafkaServer.shutdown();
+      this._logger.info('Kafka manager got shutdown');
 
-      await this.db.destroy();
-      this.logger.info('Database connection closed ');
-      await this.redis.disconnect();
+      await this._appDatasource.dataSource.destroy();
+      this._logger.info('Database connection closed ');
+
+      await this._cacheService.getClient().disconnect();
+      this._logger.info('Cache connection closed ');
       process.exit(0);
     } catch (error) {
-      this.logger.error('Error during App shutdown' + { ctx: App.name, error });
+      this._logger.error('Error during App shutdown' + { ctx: AuthApplication.name, error });
     }
   }
 }
