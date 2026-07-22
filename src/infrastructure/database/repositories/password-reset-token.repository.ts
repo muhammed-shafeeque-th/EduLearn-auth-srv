@@ -1,16 +1,17 @@
 import { LessThan, Repository } from 'typeorm';
 import { AppDataSource } from '../data-source/data-source';
-import { injectable } from 'inversify';
+import { inject, injectable } from 'inversify';
 import User from '@/domain/entity/user';
 import { IPasswordResetTokenRepository } from '@/domain/repository/reset-token.repository';
 import { PasswordResetEntity } from '../entities/password-reset-tokens';
 import { ResetToken } from '@/domain/entity/reset-token';
+import { TYPES } from '@/shared/constants/identifiers';
 
 @injectable()
 export default class PasswordResetRepositoryImpl implements IPasswordResetTokenRepository {
   private _repo: Repository<PasswordResetEntity>;
-  public constructor() {
-    this._repo = AppDataSource.getRepository(PasswordResetEntity);
+  public constructor(@inject(TYPES.DBDataSource) dataSource: AppDataSource) {
+    this._repo = dataSource.dataSource.getRepository(PasswordResetEntity);
   }
 
   public async createToken(token: ResetToken): Promise<void> {

@@ -2,15 +2,16 @@ import { IRefreshTokenRepository } from '@/domain/repository/refresh-token.repos
 import { MoreThan, LessThan, Repository } from 'typeorm';
 import { RefreshTokenEntity } from '../entities/refresh-token';
 import { AppDataSource } from '../data-source/data-source';
-import { injectable } from 'inversify';
+import { inject, injectable } from 'inversify';
 import User from '@/domain/entity/user';
 import { RefreshToken } from '@/domain/entity/refresh-token';
+import { TYPES } from '@/shared/constants/identifiers';
 
 @injectable()
 export default class RefreshTokenRepositoryImpl implements IRefreshTokenRepository {
   private _repo: Repository<RefreshTokenEntity>;
-  public constructor() {
-    this._repo = AppDataSource.getRepository(RefreshTokenEntity);
+  public constructor(@inject(TYPES.DBDataSource) source: AppDataSource) {
+    this._repo = source.dataSource.getRepository(RefreshTokenEntity);
   }
 
   public async upsertToken(token: RefreshToken): Promise<void> {

@@ -23,10 +23,12 @@ export default class PostgresAuthUserRepositoryImpl implements IAuthUserReposito
     private readonly logger: ILoggerService,
     @inject(TYPES.ICacheService)
     private readonly cache: ICacheService,
+    @inject(TYPES.DBDataSource) source: AppDataSource,
+
     // _repo?: Repository<UserModel>,
   ) {
     // Dependency injection fallback for easier testability and singletons.
-    this._repo = AppDataSource.getRepository(UserModel);
+    this._repo = source.dataSource.getRepository(UserModel);
   }
 
   public async create(user: User): Promise<User> {
