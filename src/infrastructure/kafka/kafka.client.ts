@@ -10,10 +10,12 @@ import { SchemaRegistry, SchemaType } from '@kafkajs/confluent-schema-registry';
 import { KafkaConfig, DeserializedMessage, EventPatternMetadata } from './kafka.types';
 
 import { getEventPatterns } from './decorators.kafka';
-import { LoggerService } from '../observability/logger/logger.service';
+import { inject, injectable } from 'inversify';
+import { TYPES } from '@/shared/constants/identifiers';
+import { ILoggerService } from '@/application/adaptors/logger.service';
 
+@injectable()
 export class KafkaClient {
-  private readonly logger = LoggerService.getInstance('KafkaClient');
   private kafka: Kafka;
   private producer: Producer;
   private consumer: Consumer;
@@ -21,9 +23,11 @@ export class KafkaClient {
   private isProducerConnected = false;
   private isConsumerConnected = false;
   private eventHandlers = new Map<string, EventPatternMetadata[]>();
-  private static instance: KafkaClient;
 
-  private constructor(private readonly config: KafkaConfig) {
+  public constructor(
+    @inject(TYPES.LoggerService) private readonly _logger: ILoggerService,
+    @inject(TYPES.KafkaConfigs) private readonly config: KafkaConfig,
+  ) {
     this.kafka = new Kafka({
       ...(this.config.client as KConfig),
       logLevel: logLevel.ERROR, // Reduce noise in logs
@@ -33,7 +37,7 @@ export class KafkaClient {
         factor: 2,
         maxRetryTime: 30000,
         restartOnFailure: async (e) => {
-          this.logger.error('Kafka client restart on failure', { error: e });
+          this._logger.error('Kafka client restart on failure', { error: e });
           return true;
         },
       },
@@ -49,35 +53,24 @@ export class KafkaClient {
     }
   }
 
-  public static getInstance(config?: KafkaConfig): KafkaClient {
-    if (!KafkaClient.instance) {
-      if (!config) {
-        throw new Error('config is required for KafkaClient initialization');
-      }
-
-      KafkaClient.instance = new KafkaClient(config);
-    }
-    return KafkaClient.instance;
-  }
-
   async connect(): Promise<void> {
     await Promise.all([this.connectProducer(), this.connectConsumer()]);
   }
 
   private async connectProducer(): Promise<void> {
     try {
-      this.logger.info('Producer trying to connect', {
+      this._logger.info('Producer trying to connect', {
         brokers: this.config.client.brokers,
         clientId: this.config.client.clientId,
       });
       await this.producer.connect();
       this.isProducerConnected = true;
-      this.logger.info('Producer connected successfully', {
+      this._logger.info('Producer connected successfully', {
         brokers: this.config.client.brokers,
         clientId: this.config.client.clientId,
       });
     } catch (error) {
-      this.logger.error('Failed to connect producer', {
+      this._logger.error('Failed to connect producer', {
         brokers: this.config.client.brokers,
         error,
       });
@@ -89,14 +82,14 @@ export class KafkaClient {
     try {
       await this.consumer.connect();
       this.isConsumerConnected = true;
-      this.logger.info('Consumer connected successfully');
+      this._logger.info('Consumer connected successfully');
     } catch (error) {
-      this.logger.error('Failed to connect consumer', { error });
+      this._logger.error('Failed to connect consumer', { error });
       throw error;
     }
   }
 
-  async disconnect(): Promise<void> {
+  public async disconnect(): Promise<void> {
     const promises: Promise<void>[] = [];
 
     if (this.isProducerConnected) {
@@ -108,10 +101,10 @@ export class KafkaClient {
     }
 
     await Promise.all(promises);
-    this.logger.info('Kafka client disconnected');
+    this._logger.info('Kafka client disconnected');
   }
 
-  registerEventHandlers(instances: any[]): void {
+  public registerEventHandlers(instances: any[]): void {
     for (const instance of instances) {
       this.registerInstance(instance);
     }
@@ -135,7 +128,7 @@ export class KafkaClient {
       };
 
       this.eventHandlers.get(pattern.topic)!.push(boundMetadata);
-      this.logger.info(`Registered handler for topic: ${pattern.topic}`);
+      this._logger.info(`Registered handler for topic: ${pattern.topic}`);
     }
   }
 
@@ -143,7 +136,7 @@ export class KafkaClient {
     const topics = Array.from(this.eventHandlers.keys());
 
     if (topics.length === 0) {
-      this.logger.warn('No event handlers registered');
+      this._logger.warn('No event handlers registered');
       return;
     }
 
@@ -156,7 +149,7 @@ export class KafkaClient {
     // };
 
     // await this.consumer.run(runConfig);
-    // this.logger.info(`Started consuming topics: ${topics.join(', ')}`);
+    // this._logger.info(`Started consuming topics: ${topics.join(', ')}`);
 
     // compute per-topic fromBeginning
     const topicPrefs = new Map<string, boolean>();
@@ -179,7 +172,7 @@ export class KafkaClient {
       eachMessage: async (payload) => this.processMessage(payload),
     });
 
-    this.logger.info(`Started consuming topics: ${topics.join(', ')}`);
+    this._logger.info(`Started consuming topics: ${topics.join(', ')}`);
   }
 
   private async processMessage(payload: EachMessagePayload): Promise<void> {
@@ -198,9 +191,9 @@ export class KafkaClient {
         const deserializedMessage = await this.deserializeMessage(payload);
         await handlerMetadata.handler(deserializedMessage.value, deserializedMessage);
 
-        this.logger.debug(`Successfully processed message for topic: ${payload.topic}`);
+        this._logger.debug(`Successfully processed message for topic: ${payload.topic}`);
       } catch (error) {
-        this.logger.error(`Error processing message for topic ${payload.topic}`, { error });
+        this._logger.error(`Error processing message for topic ${payload.topic}`, { error });
         // Could implement dead letter queue or retry logic here
       }
     }
@@ -225,9 +218,12 @@ export class KafkaClient {
         try {
           key = await this.schemaRegistry.decode(payload.message.key);
         } catch (error) {
-          this.logger.warn('Failed to deserialize key with schema registry, falling back to JSON', {
-            error,
-          });
+          this._logger.warn(
+            'Failed to deserialize key with schema registry, falling back to JSON',
+            {
+              error,
+            },
+          );
           key = this.safeParse(payload.message.key);
         }
       } else {
@@ -241,7 +237,7 @@ export class KafkaClient {
         try {
           value = await this.schemaRegistry.decode(payload.message.value);
         } catch (error) {
-          this.logger.warn(
+          this._logger.warn(
             'Failed to deserialize value with schema registry, falling back to JSON',
             { error },
           );
@@ -321,9 +317,9 @@ export class KafkaClient {
         ],
       });
 
-      this.logger.debug(`Message published to topic: ${topic}`);
+      this._logger.debug(`Message published to topic: ${topic}`);
     } catch (error) {
-      this.logger.error(`Failed to publish message to topic ${topic}`, { error });
+      this._logger.error(`Failed to publish message to topic ${topic}`, { error });
       throw error;
     }
   }
@@ -337,7 +333,7 @@ export class KafkaClient {
       const id = await this.schemaRegistry.getLatestSchemaId(schemaSubject);
       return id;
     } catch (error) {
-      this.logger.error(`Failed to get schema ID for subject: ${schemaSubject}`, { error });
+      this._logger.error(`Failed to get schema ID for subject: ${schemaSubject}`, { error });
       throw error;
     }
   }
@@ -364,10 +360,10 @@ export class KafkaClient {
         { type: schemaType as unknown as any, schema },
         { subject },
       );
-      this.logger.info(`Schema registered for subject: ${subject} with ID: ${id}`);
+      this._logger.info(`Schema registered for subject: ${subject} with ID: ${id}`);
       return id;
     } catch (error) {
-      this.logger.error(`Failed to register schema for subject: ${subject}`, { error });
+      this._logger.error(`Failed to register schema for subject: ${subject}`, { error });
       throw error;
     }
   }

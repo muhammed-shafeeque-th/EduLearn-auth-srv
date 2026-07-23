@@ -67,9 +67,9 @@ export interface ILoggerService {
    */
   debug(message: string, context?: LogContext): void;
 
-  /**
-   * Shuts down the logger service and releases any resources.
-   * @returns {Promise<void>} A promise that resolves when shutdown is complete
-   */
-  shutdown(): Promise<void>;
+  // /**
+  //  * Shuts down the logger service and releases any resources.
+  //  * @returns {Promise<void>} A promise that resolves when shutdown is complete
+  //  */
+  // shutdown(): Promise<void>;
 }

@@ -1,13 +1,10 @@
 import { IMetricService } from '@/application/adaptors/metric.service';
+import { MetricService as MetricsService } from '@edulearn/core';
 import { injectable } from 'inversify';
 import { Counter, Gauge, Histogram, register } from 'prom-client';
 
-// interface MetricLabels {
-//   [key: string]: string | number;
-// }
-
 @injectable()
-export class MetricService implements IMetricService {
+export class MetricService extends MetricsService implements IMetricService {
   private gRPCRequestDurationSeconds: Histogram;
   private databaseQueryCounter: Counter;
   private currentRequestCount: Gauge;
@@ -16,6 +13,8 @@ export class MetricService implements IMetricService {
   private grpcErrorsTotal: Counter;
 
   public constructor() {
+    super();
+
     this.gRPCRequestDurationSeconds = new Histogram({
       name: 'course_service_grpc_request_duration_seconds',
       help: 'Latency of gRPC requests in seconds',

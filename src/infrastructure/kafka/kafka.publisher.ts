@@ -1,24 +1,14 @@
-import { injectable } from 'inversify';
-import { LoggerService } from '../observability/logger/logger.service';
+import { inject, injectable } from 'inversify';
 import { KafkaClient } from './kafka.client';
+import { TYPES } from '@/shared/constants/identifiers';
+import { ILoggerService } from '@/application/adaptors/logger.service';
 
 @injectable()
 export class KafkaPublisher {
-  private readonly logger = LoggerService.getInstance();
-  private static instance: KafkaPublisher;
-
-  private constructor(private readonly kafkaClient: KafkaClient) {}
-
-  public static getInstance(kafkaClient: KafkaClient): KafkaPublisher {
-    if (!KafkaPublisher.instance) {
-      if (!kafkaClient) {
-        throw new Error('config is required for KafkaPublisher initialization');
-      }
-
-      KafkaPublisher.instance = new KafkaPublisher(kafkaClient);
-    }
-    return KafkaPublisher.instance;
-  }
+  public constructor(
+    @inject(TYPES.KafkaClient) private readonly kafkaClient: KafkaClient,
+    @inject(TYPES.LoggerService) private readonly _logger: ILoggerService,
+  ) {}
 
   async emit<T>(
     topic: string,
@@ -44,7 +34,7 @@ export class KafkaPublisher {
       await emitOperation();
     }
 
-    this.logger.debug(`Event emitted to topic: ${topic}`, {
+    this._logger.debug(`Event emitted to topic: ${topic}`, {
       dataType: typeof data,
       hasKey: !!key,
       hasHeaders: !!headers,
@@ -73,7 +63,7 @@ export class KafkaPublisher {
     );
 
     await Promise.all(batchPromises);
-    this.logger.debug(`Batch of ${messages.length} events emitted to topic: ${topic}`);
+    this._logger.debug(`Batch of ${messages.length} events emitted to topic: ${topic}`);
   }
 
   // Send with acknowledgment
