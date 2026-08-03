@@ -46,17 +46,26 @@ import { LoggerService } from '../observability/logger/logger.service';
 import { getEnvs, initializeTracer } from '@edulearn/core';
 import { registerShutdown as shutdownTracer } from '@edulearn/core';
 import { AppDataSource } from '../database/data-source/data-source';
-import { AppHealthServer } from '../health/health-server';
 import { RedisHealthCheck } from '../health/checks/redis.check';
 import { DBHealthCheck } from '../health/checks/db.check';
 import { GrpcAppServer } from '@/presentation/grpc/server';
 import { KafkaAppServer } from '@/presentation/kafka/kafka.server';
 import { AuthApplication } from '@/app';
+import { createServer } from 'http';
+import { AppHealthController } from '../health/health-server';
+import { MetricsEngine } from '../observability/metric/setup';
+import { KafkaHealthCheck } from '../health/checks/kafka.check';
 
-const { NODE_ENV, SERVICE_NAME, COLLECTOR_URL } = getEnvs({
+const {
+  NODE_ENV,
+  SERVICE_NAME,
+  OTLP_ENDPOINT,
+  HTTP_PORT: httpPort,
+} = getEnvs({
   NODE_ENV: 'development',
   SERVICE_NAME: 'auth-service',
-  COLLECTOR_URL: 'http://localhost:4318/v1/traces',
+  OTLP_ENDPOINT: 'http://localhost:4318/v1/traces',
+  HTTP_PORT: 3000,
 });
 
 const container = new Container();
@@ -67,7 +76,7 @@ container
     initializeTracer({
       environment: String(NODE_ENV),
       serviceName: String(SERVICE_NAME),
-      collectorUrl: String(COLLECTOR_URL),
+      collectorUrl: String(OTLP_ENDPOINT),
     }),
   )
   .inSingletonScope();
@@ -131,6 +140,7 @@ container
     return LoggerService.getInstance();
   })
   .inSingletonScope();
+container.bind(TYPES.MetricsEngine).to(MetricsEngine).inSingletonScope();
 container.bind<IMetricService>(TYPES.MetricService).to(MetricService).inSingletonScope();
 
 //Bind services
@@ -150,13 +160,22 @@ container.bind(TYPES.IGrpcAppController).to(AuthController).inSingletonScope();
 container.bind(TYPES.IEventConsumerController).to(EventConsumerController).inSingletonScope();
 
 // Servers
-container.bind(TYPES.HealthServer).to(AppHealthServer).inSingletonScope();
+container
+  .bind(TYPES.HttpServer)
+  .toDynamicValue(() => {
+    return createServer().listen(httpPort, () =>
+      console.log(`HttpServer listening on ${httpPort}`),
+    );
+  })
+  .inSingletonScope();
+container.bind(TYPES.HealthController).to(AppHealthController).inSingletonScope();
 container.bind(TYPES.GrpcAppServer).to(GrpcAppServer).inSingletonScope();
 container.bind(TYPES.KafkaAppServer).to(KafkaAppServer).inSingletonScope();
 
 // Health check
 container.bind(TYPES.RedisHealthCheck).to(RedisHealthCheck);
 container.bind(TYPES.DBHealthCheck).to(DBHealthCheck);
+container.bind(TYPES.KafkaHealthCheck).to(KafkaHealthCheck);
 
 // App
 container.bind(TYPES.Application).to(AuthApplication);
