@@ -12,6 +12,7 @@ const logger = createLogger({
   environment: NODE_ENV.toString(),
 });
 
-shutdownLogger(logger);
+process.on('SIGINT', () => shutdownLogger(logger));
+process.on('SIGTERM', () => shutdownLogger(logger));
 
 export { logger };
