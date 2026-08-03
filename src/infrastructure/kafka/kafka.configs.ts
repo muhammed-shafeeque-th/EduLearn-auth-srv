@@ -3,10 +3,11 @@ import { CompressionTypes } from 'kafkajs';
 import * as kafkaTypes from './kafka.types';
 import { getEnvs } from '@/shared/utils/getEnv';
 
-const { KAFKA_BROKERS, KAFKA_CLIENT_ID, KAFKA_CONSUMER_GROUP, NODE_ENV } = getEnvs({
+const { KAFKA_BROKER, KAFKA_CLIENT_ID, KAFKA_SASL_ENABLED, KAFKA_CONSUMER_GROUP } = getEnvs({
   KAFKA_CLIENT_ID: 'auth-service',
-  KAFKA_BROKERS: 'kafka:9092',
+  KAFKA_BROKER: 'kafka:9092',
   NODE_ENV: 'development',
+  KAFKA_SASL_ENABLED: 'false',
   KAFKA_USERNAME: { required: false },
   KAFKA_PASSWORD: { required: false },
   KAFKA_CONSUMER_GROUP: 'auth-service-group',
@@ -18,8 +19,8 @@ const { KAFKA_BROKERS, KAFKA_CLIENT_ID, KAFKA_CONSUMER_GROUP, NODE_ENV } = getEn
 export const defaultConfig: kafkaTypes.KafkaConfig = {
   client: {
     clientId: KAFKA_CLIENT_ID,
-    brokers: KAFKA_BROKERS?.toString().split(','),
-    ssl: NODE_ENV === 'production',
+    brokers: KAFKA_BROKER?.toString().split(','),
+    ssl: KAFKA_SASL_ENABLED === 'true',
     sasl: process.env.KAFKA_USERNAME
       ? {
           mechanism: 'scram-sha-256',

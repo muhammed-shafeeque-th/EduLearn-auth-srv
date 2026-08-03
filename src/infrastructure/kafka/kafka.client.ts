@@ -367,7 +367,7 @@ export class KafkaClient {
       throw error;
     }
   }
-
+  /**
   // Health check method
   async healthCheck(): Promise<{ status: 'healthy' | 'unhealthy'; details: any }> {
     try {
@@ -393,6 +393,30 @@ export class KafkaClient {
       return {
         status: 'unhealthy',
         details: { error: error.message },
+      };
+    }
+  }
+   */
+
+  // Health check method
+  public async healthCheck(): Promise<{
+    status: 'healthy' | 'unhealthy';
+    details: { error?: string };
+  }> {
+    try {
+      const admin = this.kafka.admin();
+      await admin.connect();
+      await admin.disconnect();
+
+      return {
+        status: 'healthy',
+        details: {},
+      };
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      return {
+        status: 'unhealthy',
+        details: { error: errorMessage },
       };
     }
   }
