@@ -1,9 +1,8 @@
 import { TYPES } from '@/shared/constants/identifiers';
 import { AuthServiceServer } from '../../infrastructure/gRPC/generated/auth_service';
-import { GrpcServer } from 'src/infrastructure/gRPC/server/server';
+import { GrpcServer } from '@/infrastructure/gRPC/server/server';
 import { ILoggerService } from '@/application/adaptors/logger.service';
 import { inject, injectable } from 'inversify';
-import path from 'path';
 import { getEnvs, getProtoPath } from '@edulearn/core';
 import GrpcAuthController from './grpc.controller';
 
@@ -23,11 +22,7 @@ export class GrpcAppServer {
       this._logger.info(`gRPC server starting...`);
       this.server = new GrpcServer<AuthServiceServer>(
         {
-          protoPath: path.join(
-            process.cwd(),
-            'node_modules',
-            getProtoPath('auth', 'auth_service.proto'),
-          ),
+          protoPath: getProtoPath('auth', 'auth_service.proto'),
           packageName: 'auth_service',
           serviceName: 'AuthService',
           port: Number(GRPC_PORT),
