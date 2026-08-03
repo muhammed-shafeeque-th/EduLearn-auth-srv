@@ -1,25 +1,76 @@
-import { Attributes, Context, Span, SpanStatusCode } from '@opentelemetry/api';
+import { TAttributes, TContext, TSpan } from '@edulearn/core';
 
-export interface ITraceService {
-  startActiveSpan<T>(
+export enum TSpanStatusCode {
+  UNSET = 0,
+  OK = 1,
+  ERROR = 2,
+}
+
+export abstract class ITraceService {
+  /**
+   * Starts a new {@link TSpan} and calls the given function passing it the
+   * created span as first argument.
+   * Additionally the new span gets set in context and this context is activated
+   * for the duration of the function call.
+   *
+   * @param name The name of the span
+   * @param [options] SpanOptions used for span creation
+   * @param [context] TContext to use to extract parent
+   * @param fn function called in the context of the span and receives the newly created span as an argument
+   * @returns return value of fn
+   * @example
+   *     const something = tracer.startActiveSpan('op', span => {
+   *       try {
+   *         do some work
+   *         span.setStatus({code: TSpanStatusCode.OK});
+   *         return something;
+   *       } catch (err) {
+   *         span.setStatus({
+   *           code: TSpanStatusCode.ERROR,
+   *           message: err.message,
+   *         });
+   *         throw err;
+   *       } finally {
+   *         span.end();
+   *       }
+   *     });
+   *
+   * @example
+   *     const span = tracer.startActiveSpan('op', span => {
+   *       try {
+   *         do some work
+   *         return span;
+   *       } catch (err) {
+   *         span.setStatus({
+   *           code: TSpanStatusCode.ERROR,
+   *           message: err.message,
+   *         });
+   *         throw err;
+   *       }
+   *     });
+   *     do some more work
+   *     span.end();
+   */
+  abstract startActiveSpan<F extends (span: TSpan) => unknown>(name: string, fn: F): ReturnType<F>;
+  abstract startActiveSpan<T>(
     name: string,
-    fn: (span: Span) => T | Promise<T>,
-    attributes?: Attributes,
+    fn: (span: TSpan) => T | Promise<T>,
+    attributes?: TAttributes,
   ): T | Promise<T>;
 
-  startSpan(
+  abstract startSpan(
     name: string,
-    attributes?: Attributes | Record<string | any, string | any>,
-    contextOverride?: Context,
-  ): Span;
+    attributes?: TAttributes | Record<string | any, string | any>,
+    contextOverride?: TContext,
+  ): TSpan;
 
-  endSpan(span: Span): void;
+  abstract endSpan(span: TSpan): void;
 
-  recordException(span: Span, error: any): void;
+  abstract recordException(span: TSpan, error: any): void;
 
-  setStatus(span: Span, code: SpanStatusCode, message?: string): void;
+  abstract setStatus(span: TSpan, code: TSpanStatusCode, message?: string): void;
 
-  setAttribute(span: Span, key: string, value: any): void;
+  abstract setAttribute(span: TSpan, key: string, value: any): void;
 
-  getCurrentSpan(): Span | undefined;
+  abstract getCurrentSpan(): TSpan | undefined;
 }
