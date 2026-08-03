@@ -1,6 +1,6 @@
 import { getEnvs } from '@/shared/utils/getEnv';
 import { ICacheService } from '@/application/adaptors/cache.service';
-import { RedisClient } from '@edulearn/core';
+import { CacheClient } from '@edulearn/core';
 import { injectable } from 'inversify';
 
 const {
@@ -21,7 +21,7 @@ const {
 });
 
 @injectable()
-export class RedisCacheService extends RedisClient implements ICacheService {
+export class RedisCacheService extends CacheClient implements ICacheService {
   public constructor() {
     super({
       db: Number(REDIS_DB),
