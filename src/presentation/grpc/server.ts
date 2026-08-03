@@ -38,7 +38,7 @@ export class GrpcAppServer {
     }
   }
 
-  public shutdown() {
-    this.server.shutdown();
+  public async shutdown() {
+    await this.server.shutdown();
   }
 }
