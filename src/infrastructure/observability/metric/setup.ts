@@ -71,11 +71,11 @@ export class MetricsEngine {
     return this._engine;
   }
 
-  public start() {
-    this._engine.initialize();
+  public async start() {
+    await this._engine.initialize();
   }
 
-  public shutdown() {
-    this._engine.shutdown();
+  public async shutdown() {
+    await this._engine.shutdown();
   }
 }
