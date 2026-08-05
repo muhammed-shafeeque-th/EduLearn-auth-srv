@@ -46,19 +46,23 @@ export const TYPES = {
   TraceService: Symbol.for('TraceService'),
   LoggerService: Symbol.for('LoggerService'),
   MetricService: Symbol.for('MetricService'),
+  MetricsEngine: Symbol.for('MetricsEngine'),
   KafkaClient: Symbol.for('KafkaClient'),
   KafkaPublisher: Symbol.for('KafkaPublisher'),
   DBDataSource: Symbol.for('DBDataSource'),
   TracerProvider: Symbol.for('TracerProvider'),
 
+  HealthController: Symbol.for('HealthController'),
+
   // App Servers
-  HealthServer: Symbol.for('HealthServer'),
+  HttpServer: Symbol.for('HttpSeServer'),
   GrpcAppServer: Symbol.for('GrpcAppServer'),
   KafkaAppServer: Symbol.for('KafkaAppServer'),
 
   // Health check
   DBHealthCheck: Symbol.for('DBHealthCheck'),
   RedisHealthCheck: Symbol.for('RedisHealthCheck'),
+  KafkaHealthCheck: Symbol.for('KafkaHealthCheck'),
 
   // Config values
   KafkaConfigs: Symbol.for('KafkaConfigs'),

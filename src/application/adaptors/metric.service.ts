@@ -14,6 +14,4 @@ export interface IMetricService {
   incrementDBRequestCounter(operation?: 'INSERT' | 'DELETE' | 'SELECT' | 'UPDATE'): void;
 
   incrementErrorCounter(method: string, statusCode?: number): void;
-
-  getMetrics(): Promise<string>;
 }

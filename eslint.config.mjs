@@ -15,13 +15,7 @@ const compat = new FlatCompat({
 
 export default [
   {
-    ignores: [
-      'node_modules/',
-      'dist/',
-      'coverage/',
-      'src/infrastructure/frameworks/gRPC/generated/*',
-      'protogen.sh',
-    ],
+    ignores: ['node_modules/', 'dist/', 'coverage/', 'protogen.sh'],
   },
   ...compat.extends(
     'eslint:recommended',

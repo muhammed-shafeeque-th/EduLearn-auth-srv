@@ -8,7 +8,7 @@ import { TYPES } from '@/shared/constants/identifiers';
 import { getEnvs } from '@/shared/utils/getEnv';
 const config = getEnvs({
   TEMPLATE_BASE_DIR: {
-    required: true,
+    required: false,
   },
 });
 
@@ -19,7 +19,7 @@ export class HandlebarsTemplateRendererAdapter implements ITemplateRenderer {
   public constructor(
     @inject(TYPES.ICacheService)
     private readonly cache: ICacheService,
-    private readonly baseDir: string = config.TEMPLATE_BASE_DIR.toString(),
+    private readonly baseDir: string = config.TEMPLATE_BASE_DIR?.toString(),
   ) {
     this.registerHelpers();
     this.baseDir = path.resolve(this.baseDir);

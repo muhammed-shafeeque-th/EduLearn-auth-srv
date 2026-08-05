@@ -39,7 +39,7 @@ export class AppDataSource {
         min: 5, // minimum number of connections in the pool
         idleTimeoutMillis: 30000, // close idle connections after 30 seconds
         connectionTimeoutMillis: 4000, // return an error after 4 seconds if connection could not be established
-        ssl: NODE_ENV === 'production' ? { rejectUnauthorized: false } : false,
+        ssl: false && NODE_ENV === 'production' ? { rejectUnauthorized: false } : false,
       },
     });
   }

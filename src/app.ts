@@ -4,9 +4,10 @@ import { GrpcAppServer } from './presentation/grpc/server';
 import { ICacheService } from './application/adaptors/cache.service';
 import { inject, injectable } from 'inversify';
 import { AppDataSource } from './infrastructure/database/data-source/data-source';
-import { AppHealthServer } from './infrastructure/health/health-server';
 import { ILoggerService } from './application/adaptors/logger.service';
 import { KafkaAppServer } from './presentation/kafka/kafka.server';
+import { AppHealthController } from './infrastructure/health/health-server';
+import { MetricsEngine } from './infrastructure/observability/metric/setup';
 
 @injectable()
 export class AuthApplication {
@@ -14,7 +15,8 @@ export class AuthApplication {
 
   public constructor(
     @inject(TYPES.LoggerService) private readonly _logger: ILoggerService,
-    @inject(TYPES.HealthServer) private readonly _healthServer: AppHealthServer,
+    @inject(TYPES.HealthController) private readonly _healthServer: AppHealthController,
+    @inject(TYPES.MetricsEngine) private readonly _metricsEngine: MetricsEngine,
     @inject(TYPES.DBDataSource) private readonly _appDatasource: AppDataSource,
     @inject(TYPES.KafkaAppServer) private readonly _kafkaServer: KafkaAppServer,
     @inject(TYPES.ICacheService) private readonly _cacheService: ICacheService,
@@ -31,26 +33,28 @@ export class AuthApplication {
 
     this.initGrpcSever();
 
-    this.initHealthServer();
+    await this.initServices();
     this._logger.info('Application started successfully ');
   }
 
   private async initKafka(): Promise<void> {
     try {
       // Initialize Kafka manager
-      this._kafkaServer.initialize();
+      await this._kafkaServer.initialize();
     } catch (error) {
       this._logger.error('Error while initializing  Kafka ', { error });
       throw error;
     }
   }
-  private async initHealthServer(): Promise<void> {
+  private async initServices(): Promise<void> {
     try {
-      // Initialize Kafka manager
       this._healthServer.initialize();
-      this._logger.info('Health server initialized');
+      this._logger.info('Health service initialized');
+
+      await this._metricsEngine.start();
+      this._logger.info('Metrics service initialized');
     } catch (error) {
-      this._logger.error('Error while initializing health server ', { error });
+      this._logger.error('Error while initializing services ', { error });
       throw error;
     }
   }
@@ -125,6 +129,10 @@ export class AuthApplication {
 
       await this._cacheService.getClient().disconnect();
       this._logger.info('Cache connection closed ');
+
+      await this._metricsEngine.shutdown();
+      this._logger.info('Metrics engine closed ');
+
       process.exit(0);
     } catch (error) {
       this._logger.error('Error during App shutdown' + { ctx: AuthApplication.name, error });
