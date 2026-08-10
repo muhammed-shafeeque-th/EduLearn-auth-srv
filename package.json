@@ -21,7 +21,7 @@
     "format": "npm run prettier:fix && npm run lint:fix"
   },
   "dependencies": {
-    "@edulearn/core": "1.0.25",
+    "@edulearn/core": "1.0.27",
     "@grpc/grpc-js": "^1.13.0",
     "@grpc/proto-loader": "^0.7.13",
     "@kafkajs/confluent-schema-registry": "^4.1.0",
