@@ -1,5 +1,5 @@
 {
-  "name": "auth",
+  "name": "edulearn-auth",
   "version": "1.0.0",
   "description": "EduLearn auth service",
   "main": "index.ts",
