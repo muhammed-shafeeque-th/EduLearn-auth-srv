@@ -296,10 +296,10 @@
     enabled "2.0.x"
     kuler "^2.0.0"
 
-"@edulearn/core@1.0.27":
-  version "1.0.27"
-  resolved "https://registry.yarnpkg.com/@edulearn/core/-/core-1.0.27.tgz#0655742a4f09412d8a4f23c8778e422c9cda6d8e"
-  integrity sha512-MwU77KWVaGoPBNbWq44Q7cZh5p/JY+bWXgE9A6OGxs0t9chc4FaATVK5ArPzzUXPrRaxB3wbDwJk5xy8/BkVMg==
+"@edulearn/core@1.0.28":
+  version "1.0.28"
+  resolved "https://registry.yarnpkg.com/@edulearn/core/-/core-1.0.28.tgz#381498b218ced4cf03f27d5e62d5b0e6ae5b06d7"
+  integrity sha512-TPRI33gMEquYz3mSYcy0B8XxhXASc04GyNwYoGB1ZBzzsT0SX9XA/EUR/tlDaWzW11b710ClZa92AAJLkcnIZw==
   dependencies:
     "@opentelemetry/api" "^1.9.0"
     "@opentelemetry/exporter-trace-otlp-http" "^0.220.0"
