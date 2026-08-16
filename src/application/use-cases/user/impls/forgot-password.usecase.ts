@@ -15,8 +15,8 @@ import { KafkaTopics } from '@/shared/events';
 import { ForgotPasswordRequestEvent } from '@/domain/events/types/notification-service.events';
 import { ILoggerService } from '../../../adaptors/logger.service';
 import { ITraceService } from '../../../adaptors/trace.service';
-const { EDULEARN_FRONT_END_URL: frontEndUrl } = getEnvs({
-  EDULEARN_FRONT_END_URL: 'http://localhost:9000',
+const { SITE_URL: frontEndUrl } = getEnvs({
+  SITE_URL: 'http://localhost:9000',
 });
 
 @injectable()
