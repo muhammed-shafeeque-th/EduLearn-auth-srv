@@ -18,36 +18,28 @@ export class KafkaAppServer {
   }
 
   public async initialize(): Promise<void> {
-    for (let attempt = 1; attempt <= 5; attempt++) {
-      try {
-        await this._initializeHandlers([this.consumerHandlers]);
-        return;
-      } catch (err) {
-        this._logger.error(`Kafka startup failed (attempt ${attempt})`, { error: err });
-        await new Promise((r) => setTimeout(r, 3000));
-      }
-    }
-    throw new Error('Kafka failed to start after retries');
-  }
-
-  private async _initializeHandlers(eventHandlerInstances: unknown[] = []): Promise<void> {
     if (this.isInitialized) {
       this._logger.warn('KafkaAppServer already initialized');
       return;
     }
 
     try {
+      this._logger.info('Initializing KafkaAppServer...');
+
       await this.kafkaClient.connect();
 
-      if (eventHandlerInstances.length > 0) {
-        this.kafkaClient.registerEventHandlers(eventHandlerInstances);
-        await this.kafkaClient.startConsumers();
-      }
+      this.kafkaClient.registerEventHandlers([this.consumerHandlers]);
+
+      await this.kafkaClient.startConsumers();
 
       this.isInitialized = true;
+
       this._logger.info('KafkaAppServer initialized successfully');
     } catch (error) {
-      this._logger.error('Failed to initialize KafkaAppServer', { error });
+      this._logger.error('KafkaAppServer initialization failed', {
+        error,
+      });
+
       throw error;
     }
   }

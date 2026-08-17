@@ -73,8 +73,7 @@ export class AuthApplication {
   private async initCache(): Promise<void> {
     try {
       // Connect to redis
-      this._cacheService.getClient().connect();
-      // await this.redis.connect();
+      await this._cacheService.getClient().connect();
     } catch (error) {
       this._logger.error('Error while connecting to Redis', { error });
       throw error;

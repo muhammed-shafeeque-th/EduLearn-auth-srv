@@ -53,8 +53,35 @@ export class KafkaClient {
     }
   }
 
-  async connect(): Promise<void> {
-    await Promise.all([this.connectProducer(), this.connectConsumer()]);
+  // async connect(): Promise<void> {
+  //   await Promise.all([this.connectProducer(), this.connectConsumer()]);
+  // }
+
+  public async connect(): Promise<void> {
+    try {
+      this._logger.info('Connecting Kafka...', {
+        brokers: this.config.client.brokers,
+        clientId: this.config.client.clientId,
+      });
+
+      await this.connectProducer();
+      await this.connectConsumer();
+
+      this._logger.info('Kafka producer and consumer connected successfully');
+    } catch (error) {
+      this.isProducerConnected = false;
+      this.isConsumerConnected = false;
+
+      try {
+        await this.disconnect();
+      } catch (disconnectError) {
+        this._logger.error('Failed to cleanup Kafka connections', {
+          error: disconnectError,
+        });
+      }
+
+      throw error;
+    }
   }
 
   private async connectProducer(): Promise<void> {
@@ -420,8 +447,4 @@ export class KafkaClient {
       };
     }
   }
-
-  // getMetrics(): any {
-  //   return this.metrics.getMetrics();
-  // }
 }
