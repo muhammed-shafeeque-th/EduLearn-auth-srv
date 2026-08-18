@@ -382,9 +382,7 @@ export default class GrpcAuthController {
           const result = await logic(span);
           callback(null, result);
           return result;
-        } finally {
-          if (span?.end) span.end();
-        }
+        } 
       });
     }, callback);
   }
