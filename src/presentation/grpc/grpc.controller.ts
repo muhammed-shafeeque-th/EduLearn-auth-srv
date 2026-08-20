@@ -378,11 +378,9 @@ export default class GrpcAuthController {
   ) {
     this._handleWithError(async () => {
       return await this._tracer.startActiveSpan(spanName, async (span) => {
-        try {
-          const result = await logic(span);
-          callback(null, result);
-          return result;
-        } 
+        const result = await logic(span);
+        callback(null, result);
+        return result;
       });
     }, callback);
   }
