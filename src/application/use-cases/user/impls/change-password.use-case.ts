@@ -41,18 +41,19 @@ export default class ChangePasswordUseCaseImpl implements IChangePasswordUseCase
           throw new BadRequestError(
             'Incorrect current password, please check credential and try again',
           );
-      }
 
-      const isSamePrevPassword = await this._hashService.compare(
-        user.getPassword()!,
-        dto.newPassword,
-      );
-
-      if (isSamePrevPassword) {
-        throw new BadRequestError(
-          "new password and current password can't be the same, please choose another strong password",
+        const isSamePrevPassword = await this._hashService.compare(
+          user.getPassword()!,
+          dto.newPassword,
         );
+
+        if (isSamePrevPassword) {
+          throw new BadRequestError(
+            "new password and current password can't be the same, please choose another strong password",
+          );
+        }
       }
+
       const hashedPassword = await this._hashService.hash(dto.newPassword);
 
       user.changePassword(hashedPassword);
